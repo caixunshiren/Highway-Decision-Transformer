@@ -1,4 +1,4 @@
-# Abstract class method adoped from official code of Decision Transformer
+# Decision Transformer module adopted from official code of Decision Transformer
 # https://github.com/kzl/decision-transformer
 # @article{chen2021decisiontransformer,
 #   title={Decision Transformer: Reinforcement Learning via Sequence Modeling},
