@@ -2,4 +2,3 @@ torch
 torchvision
 numpy
 matplotlib
-highway-env == 1.5
