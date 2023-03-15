@@ -2,4 +2,3 @@ torch
 torchvision
 numpy
 matplotlib
-transformers
