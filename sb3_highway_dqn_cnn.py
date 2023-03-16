@@ -67,7 +67,7 @@ def main():
     
     model.load(model_path="highway_dqn/PPO_model")
     
-    # Load and test saved model
+        # Load and test saved model
     # model = DQN.load("highway_dqn/model")
     # while True:
     # done = truncated = False
