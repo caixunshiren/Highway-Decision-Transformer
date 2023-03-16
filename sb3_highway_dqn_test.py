@@ -7,10 +7,21 @@ from stable_baselines3 import PPO
 highway_env.register_highway_envs()
 import numpy as np
 import csv
+from utils import RecordVideo
 
 def main():
     # Create the environment
-    env = gym.make("highway-v0")
+    env = gym.make("highway-fast-v0")
+    #env = gym.make("highway-v0")
+    
+    # env = RecordVideo(env, video_folder="run",
+    #                   episode_trigger=lambda e: True)  # record all episodes
+
+
+    # Provide the video recorder to the wrapped environment
+    # so it can send it intermediate simulation frames.
+    # env.unwrapped.set_record_video_wrapper(env)
+
 
     # model = DQN('MlpPolicy', env,
     #             policy_kwargs=dict(net_arch=[256, 256]),
@@ -47,6 +58,7 @@ def main():
             datatest.append([obs, action, reward])
             print("obs:", obs, "action:", action, "reward:", reward, '\n')
             env.render()
+    env.close()
           
     with open('ppo_dataset.csv', 'w', newline='') as csvfile:
 
