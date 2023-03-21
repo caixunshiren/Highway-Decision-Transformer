@@ -43,7 +43,7 @@ def main():
     # Create the environment
     # env = gym.make("highway-v0")
     
-    train = True
+    train = False
     if train:
         n_cpu = 4
         batch_size = 64
@@ -66,6 +66,8 @@ def main():
     model.save("highway_dqn/PPO_model")
     
     model.load(model_path="highway_dqn/PPO_model")
+    
+    
     
     # Load and test saved model
     # model = DQN.load("highway_dqn/model")

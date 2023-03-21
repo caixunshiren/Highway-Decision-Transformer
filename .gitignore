@@ -27,6 +27,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 highway_env
+highway_venv
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -130,3 +131,5 @@ dmypy.json
 .pyre/
 .idea
 .DS_Store
+pipelines/.DS_Store
+.gitignore

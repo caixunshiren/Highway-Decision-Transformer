@@ -396,19 +396,19 @@ if __name__ == "__main__":
                     policy_kwargs=policy_kwargs,
                     verbose=2)
         # Train the agent
-        model.learn(total_timesteps=200*1000)
+        model.learn(total_timesteps=500*1000)
         # Save the agent
-        model.save("highway_attention_ppo/model")
+        model.save("highway_attention_ppo/model_new")
 
-    model = PPO.load("highway_attention_ppo/model")
+    model = PPO.load("highway_attention_ppo/model_new")
     env = make_configure_env(**env_kwargs)
-    env.render()
-    env.viewer.set_agent_display(functools.partial(
-        display_vehicles_attention, env=env, model=model))
+    # env.render()
+    # env.viewer.set_agent_display(functools.partial(
+    #     display_vehicles_attention, env=env, model=model))
     
     datatest = []
     
-    for _ in range(100):
+    for id in range(5000):
         obs, info = env.reset()
         done = truncated = False
         episode_data = []
@@ -416,15 +416,20 @@ if __name__ == "__main__":
             action, _ = model.predict(obs)
             obs, reward, done, truncated, info = env.step(action)
             episode_data.append([obs, action, reward])
-            env.render()
+            # env.render()
+        episode_data.append(info['crashed'])
+        print('Episode: ', id, ', Crashed?: ', info['crashed'])
         datatest.append(episode_data)
     
     env.close()
+    
+    np.save('dataset_5000.npy', np.array(datatest, dtype=object), allow_pickle=True)
+    b = np.load('dataset_5000.npy', allow_pickle=True)
 
-    with open('transformer_dataset.csv', 'w', newline='') as csvfile:
+    # with open('transformer_dataset.csv', 'w', newline='') as csvfile:
 
-        # Create a CSV writer object
-        csvwriter = csv.writer(csvfile, delimiter=',')
+    #     # Create a CSV writer object
+    #     csvwriter = csv.writer(csvfile, delimiter=',')
 
-        # Write the list to the CSV file
-        csvwriter.writerow(datatest)
+    #     # Write the list to the CSV file
+    #     csvwriter.writerow(datatest)
