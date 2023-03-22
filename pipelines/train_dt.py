@@ -164,6 +164,7 @@ def train(config, sequences, continue_training=False):
         act_dim=act_dim,
         max_length=K,
         max_ep_len=max_ep_len,
+        action_tanh=config['action_tanh'],
         hidden_size=config['embed_dim'],
         n_layer=config['n_layer'],
         n_head=config['n_head'],
@@ -196,7 +197,7 @@ def train(config, sequences, continue_training=False):
         batch_size=batch_size,
         get_batch=get_batch,
         scheduler=scheduler,
-        loss_fn=lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a)**2),
+        loss_fn=config['loss_fn'],
         eval_fns=[eval_episodes(tar) for tar in config['env_targets']]
     )
 
