@@ -27,6 +27,7 @@ share/python-wheels/
 *.egg
 MANIFEST
 highway_env
+highway_venv
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -131,3 +132,16 @@ dmypy.json
 .idea
 .DS_Store
 data
+pipelines/.DS_Store
+.gitignore
+dataset_5000.npy
+highway_attention_ppo/model_fast.zip
+highway_attention_ppo/model_new.zip
+highway_attention_ppo/model_race.zip
+highway_attention_ppo/model.zip
+pipelines/.DS_Store
+run/rl-video-episode-0.meta.json
+run/rl-video-episode-0.mp4
+run/rl-video-episode-1.meta.json
+run/rl-video-episode-1.mp4
+run/rl-video-episode-2.meta.json
