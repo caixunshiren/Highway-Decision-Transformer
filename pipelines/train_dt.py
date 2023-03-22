@@ -31,13 +31,15 @@ def train(config, sequences, continue_training=False):
                     states: np.array of shape (T, *state_dim)
                     actions: np.array of shape (T, *action_dim)
                     rewards: np.array of shape (T, )
+                    'dones': np.array([0,0, ..., 1])} -> trivial for our case as we always have one
+                                       scene for each episode. Dones is also not used in experiments.
 
-    some code adapted from https://github.com/kzl/decision-transformer/blob/master/gym/experiment.py
+    code partially adapted from https://github.com/kzl/decision-transformer/blob/master/gym/experiment.py
     """
     assert sequences is not None, 'No sequences provided for training.'
     device = config['device']
-    act_dim = sequences[0]['actions'].shape[1:]
-    state_dim = sequences[0]['actions'].shape[1:]
+    act_dim = np.squeeze(sequences[0]['actions'].shape[1:])
+    state_dim = np.squeeze(sequences[0]['states'].shape[1:])
     max_ep_len = max([len(path['states']) for path in sequences])  # take it as the longest trajectory
     scale = np.mean([len(path['states']) for path in sequences])  # scale for rtg
 
@@ -158,6 +160,8 @@ def train(config, sequences, continue_training=False):
                 f'target_{target_rew}_length_std': np.std(lengths),
             }
         return fn
+
+    print("state_dim: ", state_dim, "act_dim: ", act_dim, "K: ", K, "max_ep_len: ", max_ep_len, "scale: ", scale)
 
     model = DecisionTransformer(
         state_dim=state_dim,

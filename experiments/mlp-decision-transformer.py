@@ -14,7 +14,7 @@ config = {
     'log_to_wandb': False,
     'max_iters': 10,
     'num_steps_per_iter': 10,#10000,
-    'context_length': 10,
+    'context_length': 20,
     'batch_size': 32,
     'num_eval_episodes': 50,
     'pct_traj': 1.0,
@@ -29,9 +29,9 @@ config = {
     'learning_rate': 1e-4,
     'warmup_steps': 10,#10000,
     'weight_decay': 1e-4,
-    'env_targets': [0.5, 1.0, 5.0, 10],
+    'env_targets': [],#[0.5, 1.0, 5.0, 10],
     'action_tanh': False, #True,
-    'loss_fn': lambda s_hat, a_hat, r_hat, s, a, r: torch.nn.CrossEntropyLoss()(a_hat, a)
+    'loss_fn': lambda s_hat, a_hat, r_hat, s, a, r: torch.nn.CrossEntropyLoss()(a_hat, torch.argmax(a, dim=1))
     #lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a)**2),
 }
 
@@ -42,10 +42,13 @@ def load_sequence(row):
     :param row: [[state1, action1, reward1], [state2, action2, reward2], ..., [stateN, actionN, rewardN]]
     :return: sequence: dict containing {'states': np.array([state1, state2, ..., stateT]),
                                        'actions': np.array([action1, action2, ..., actionT]),
-                                       'rewards': np.array([reward1, reward2, ..., rewardT])}
+                                       'rewards': np.array([reward1, reward2, ..., rewardT]),
+                                       'dones': np.array([0,0, ..., 1])} -> trivial for our case as we always have one
+                                       scene for each episode. Dones is also not used in experiments.
                     states: np.array of shape (T, *state_dim)
                     actions: np.array of shape (T, *action_dim)
                     rewards: np.array of shape (T, )
+                    dones: np.array of shape (T, )
     '''
     crashed = row[-1]
     states = []
@@ -61,16 +64,18 @@ def load_sequence(row):
     states = np.array(states)
     actions = np.array(actions)
     rewards = np.array(rewards) if not crashed else -np.array(rewards)
-    sequence = {'states': states, 'actions': actions, 'rewards': rewards}
+    dones = np.zeros_like(rewards)
+    dones[-1] = 1
+    sequence = {'states': states, 'actions': actions, 'rewards': rewards, 'dones': dones}
     return sequence
 
 
 # Load sequences
 A = np.load('../data/dataset_5000.npy', allow_pickle=True)
 
-sequences = [load_sequence(row) for row in A]
-print(len(sequences))
-print(sequences[10]['states'].shape, sequences[10]['actions'].shape, sequences[10]['rewards'].shape)
+sequences = [load_sequence(row) for row in A if row[-1] is False]
+#print(len(sequences))
+#print(sequences[10]['states'].shape, sequences[10]['actions'].shape, sequences[10]['rewards'].shape)
 
 model, optimizer, scheduler = train(config, sequences, continue_training=False)
 
