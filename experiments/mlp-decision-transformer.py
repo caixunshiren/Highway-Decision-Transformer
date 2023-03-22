@@ -74,12 +74,20 @@ def load_sequence(row):
 A = np.load('../data/dataset_5000.npy', allow_pickle=True)
 
 sequences = [load_sequence(row) for row in A if row[-1] is False]
-#print(len(sequences))
-#print(sequences[10]['states'].shape, sequences[10]['actions'].shape, sequences[10]['rewards'].shape)
 
+# Train model
 model, optimizer, scheduler = train(config, sequences, continue_training=False)
+
+# save model as checkpoint
+checkpoint = {
+    'model': model.state_dict(),
+    'optimizer': optimizer.state_dict(),
+    }
+torch.save(checkpoint, f'saved_models/checkpoint-{config["experiment_name"]}.pth')
+print('-'*20+'model saved'+'-'*20)
 
 
 ##TODO: Noted issues:
 # 1. predict_action should be linear or sigmoid not tanh -> solved by setting action_tanh=False
 # 2. loss function should be cross entropy not mse on action -> solved by setting loss_fn to nn.CrossEntropyLoss()
+# 3. save model, optimizer, and scheduler
