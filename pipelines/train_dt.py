@@ -202,7 +202,8 @@ def train(config, sequences, continue_training=False):
         get_batch=get_batch,
         scheduler=scheduler,
         loss_fn=config['loss_fn'],
-        eval_fns=[eval_episodes(tar) for tar in config['env_targets']]
+        eval_fns=[eval_episodes(tar) for tar in config['env_targets']],
+        err_fn=config['err_fn']
     )
 
     if config['log_to_wandb']:
