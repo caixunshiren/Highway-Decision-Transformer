@@ -1,5 +1,5 @@
 matplotlib
 numpy==1.20.3
-torch==1.8.1
 transformers==4.6
 wandb==0.9.1
+torch==1.8.1
