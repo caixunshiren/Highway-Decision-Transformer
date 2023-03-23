@@ -161,7 +161,7 @@ def train(config, sequences, continue_training=False):
             }
         return fn
 
-    print("state_dim: ", state_dim, "act_dim: ", act_dim, "K: ", K, "max_ep_len: ", max_ep_len, "scale: ", scale)
+    print("state_dim:", state_dim, " act_dim:", act_dim, " K:", K, " max_ep_len:", max_ep_len, " scale:", scale)
 
     model = DecisionTransformer(
         state_dim=state_dim,
@@ -178,23 +178,22 @@ def train(config, sequences, continue_training=False):
         resid_pdrop=config['dropout'],
         attn_pdrop=config['dropout'],
     )
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=config['learning_rate'],
+        weight_decay=config['weight_decay'],
+    )
 
     if continue_training:
-        model = config['model']
-        optimizer = config['optimizer']
-        scheduler = config['scheduler']
+        model.load_state_dict(config['model'])
+        optimizer.load_state_dict(config['optimizer'])
     else:
         model = model.to(device=device)
-        warmup_steps = config['warmup_steps']
-        optimizer = torch.optim.AdamW(
-            model.parameters(),
-            lr=config['learning_rate'],
-            weight_decay=config['weight_decay'],
-        )
-        scheduler = torch.optim.lr_scheduler.LambdaLR(
-            optimizer,
-            lambda steps: min((steps+1)/warmup_steps, 1)
-        )
+    warmup_steps = config['warmup_steps']
+    scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lambda steps: min((steps+1)/warmup_steps, 1)
+    )
     trainer = SequenceTrainer(
         model=model,
         optimizer=optimizer,
