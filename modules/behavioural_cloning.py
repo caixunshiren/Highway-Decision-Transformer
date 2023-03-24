@@ -1,11 +1,11 @@
 import numpy as np
 import torch
 import torch.nn as nn
-from trajectory_model import TrajectoryModel
+from modules.model import TrajectoryModel
 
 class BehaviouralCloning(TrajectoryModel):
     #Fully connected MLP with n_layer hidden layers
-    def __init__(self, state_dim, act_dim, hidden_size, n_layer, dropout, max_length, **kwargs):
+    def __init__(self, state_dim, act_dim, hidden_size, n_layer, dropout=0.1, max_length=1, **kwargs):
         super().__init__(state_dim, act_dim)
 
         self.hidden_size = hidden_size
@@ -22,20 +22,20 @@ class BehaviouralCloning(TrajectoryModel):
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_size, self.act_dim),
-            nn.Tanh(),
+            nn.Softmax(),
         ])
 
         self.model = nn.Sequential(*layers)
 
-    def forward(self, states, actions, rewards, attention_mask=None, target_return=None):
-        states = states[:,-self.max_length:].reshape(states.shape[0], -1)  # take last max_length states
+    def forward(self, states, actions, rewards, rtg, timesteps, attention_mask=None, target_return=None):
+
+        states = states[:,-self.max_length:].reshape(states.shape[0], -1)  # concat states
         actions = self.model(states).reshape(states.shape[0], 1, self.act_dim)
 
         return None, actions, None
 
     def get_action(self, states, actions, rewards, **kwargs):
         states = states.reshape(1, -1, self.state_dim)
-        #Concatenate zeros if the state is shorter than max_length
         if states.shape[1] < self.max_length:
             states = torch.cat(
                 [torch.zeros((1, self.max_length-states.shape[1], self.state_dim),

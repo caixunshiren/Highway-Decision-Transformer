@@ -76,7 +76,7 @@ def load_sequence(row):
 
 
 # Load sequences
-A = np.load('../data/mcts_dataset_expert.npy', allow_pickle=True)
+A = np.load('./data/mcts_dataset_expert.npy', allow_pickle=True)
 
 sequences = [load_sequence(row) for row in A]
 
