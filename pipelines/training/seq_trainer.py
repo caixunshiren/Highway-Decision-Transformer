@@ -32,9 +32,17 @@ class SequenceTrainer(Trainer):
             states, actions, rewards, rtg[:,:-1], timesteps, attention_mask=attention_mask,
         )
 
+        #print("debug action pred and target before: ", action_preds.shape, action_target.shape)
+
         act_dim = action_preds.shape[2]
         action_preds = action_preds.reshape(-1, act_dim)[attention_mask.reshape(-1) > 0]
         action_target = action_target.reshape(-1, act_dim)[attention_mask.reshape(-1) > 0]
+
+        #print("debug action pred and target: ", action_preds.shape, action_target.shape,
+        #      "debug state pred and states: ", state_preds.shape, states.shape)
+
+        #print("debug action pred and target: ", action_preds, action_target)
+        #print("debug target index: ", torch.argmax(action_target, dim=1))
 
         loss = self.loss_fn(
             None, action_preds, None,
@@ -47,6 +55,11 @@ class SequenceTrainer(Trainer):
         self.optimizer.step()
 
         with torch.no_grad():
-            self.diagnostics['training/action_error'] = torch.mean((action_preds-action_target)**2).detach().cpu().item()
+            if self.err_fn is not None:
+                self.diagnostics['training/action_error'] = self.err_fn(action_preds, action_target)\
+                    .detach().cpu().item()
+            else:
+                self.diagnostics['training/action_error'] = torch.mean((action_preds-action_target)**2)\
+                    .detach().cpu().item()
 
         return loss.detach().cpu().item()

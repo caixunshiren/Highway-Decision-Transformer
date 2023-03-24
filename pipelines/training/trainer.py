@@ -1,4 +1,4 @@
-# trainder module adopted from official code of Decision Transformer
+# trainder module modified based on the official code of Decision Transformer
 # https://github.com/kzl/decision-transformer
 # @article{chen2021decisiontransformer,
 #   title={Decision Transformer: Reinforcement Learning via Sequence Modeling},
@@ -23,12 +23,13 @@ import time
 
 class Trainer:
 
-    def __init__(self, model, optimizer, batch_size, get_batch, loss_fn, scheduler=None, eval_fns=None):
+    def __init__(self, model, optimizer, batch_size, get_batch, loss_fn, scheduler=None, eval_fns=None, err_fn=None):
         self.model = model
         self.optimizer = optimizer
         self.batch_size = batch_size
         self.get_batch = get_batch
         self.loss_fn = loss_fn
+        self.err_fn = err_fn
         self.scheduler = scheduler
         self.eval_fns = [] if eval_fns is None else eval_fns
         self.diagnostics = dict()
