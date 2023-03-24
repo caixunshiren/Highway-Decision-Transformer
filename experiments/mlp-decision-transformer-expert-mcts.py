@@ -8,6 +8,7 @@ import gymnasium as gym
 import highway_env
 
 from pipelines.train_dt import train
+from pipelines.loading_utils import load_sequence
 
 # check if cuda is available
 print(torch.version.cuda)
@@ -29,13 +30,13 @@ config = {
     'log_to_wandb': False,
     'max_iters': 10,
     'num_steps_per_iter': 100,#10000,
-    'context_length': 30,
+    'context_length': 40,
     'batch_size': 32,
     'num_eval_episodes': 10,
     'pct_traj': 1.0,
     'n_layer': 3,
     'embed_dim': 128,
-    'n_head': 4,
+    'n_head': 8,
     'activation_function': 'relu',
     'dropout': 0.1,
     'model': None,#checkpoint['model'],
@@ -50,43 +51,14 @@ config = {
     'err_fn': lambda a_hat, a: torch.sum(torch.argmax(a_hat, dim=1) != torch.argmax(a, dim=1))/a.shape[0],
 }
 
-def load_sequence(row):
-    '''
-    Load a sequence from a row of the dataset.
-    :param row: [[state1, action1, reward1], [state2, action2, reward2], ..., [stateN, actionN, rewardN]]
-    :return: sequence: dict containing {'states': np.array([state1, state2, ..., stateT]),
-                                       'actions': np.array([action1, action2, ..., actionT]),
-                                       'rewards': np.array([reward1, reward2, ..., rewardT]),
-                                       'dones': np.array([0,0, ..., 1])} -> trivial for our case as we always have one
-                                       scene for each episode. Dones is also not used in experiments.
-                    states: np.array of shape (T, *state_dim)
-                    actions: np.array of shape (T, *action_dim)
-                    rewards: np.array of shape (T, )
-                    dones: np.array of shape (T, )
-    '''
-    states = []
-    actions = []
-    rewards = []
-    for state, action, reward in row:
-        # flatten state for mlp encoder
-        states.append(state.reshape(-1))
-        one_hot_action = np.zeros(5)
-        one_hot_action[action] = 1
-        actions.append(one_hot_action)
-        rewards.append(reward)
-    states = np.array(states)
-    actions = np.array(actions)
-    rewards = np.array(rewards)
-    dones = np.zeros_like(rewards)
-    dones[-1] = 1
-    sequence = {'states': states, 'actions': actions, 'rewards': rewards, 'dones': dones}
-    return sequence
-
-
 # Load sequences
-A = np.load('../data/mcts_dataset_expert.npy', allow_pickle=True)
-
-sequences = [load_sequence(row) for row in A]
+sequences = []
+names = ['', '_second', '_third', '_four', '_five', '_six', '_seven', '_eight']
+for n in names:
+    fname = f'../data/mcts-w-crashes/mcts_dataset_alldata{n}.npy'
+    A = np.load(fname, allow_pickle=True)
+    sequence = [load_sequence(row) for row in A]
+    sequences += sequence
 
 # Train model
 model, optimizer, scheduler = train(config, sequences, continue_training=False)
