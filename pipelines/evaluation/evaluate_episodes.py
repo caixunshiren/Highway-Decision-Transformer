@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+import gymnasium as gym
+import highway_env
 
 
 def evaluate_episode(
@@ -68,13 +70,11 @@ def evaluate_episode_rtg(
         state_dim,
         act_dim,
         model,
-        max_ep_len=1000,
-        scale=1000.,
         state_mean=0.,
         state_std=1.,
         device='cuda',
         target_return=None,
-        mode='normal',
+        render=True,
     ):
 
     model.eval()
@@ -83,9 +83,7 @@ def evaluate_episode_rtg(
     state_mean = torch.from_numpy(state_mean).to(device=device)
     state_std = torch.from_numpy(state_std).to(device=device)
 
-    state = env.reset()
-    if mode == 'noise':
-        state = state + np.random.normal(0, 0.1, size=state.shape)
+    (state, info), done = env.reset(), False
 
     # we keep all the histories on the device
     # note that the latest action and reward will be "padding"
@@ -97,10 +95,13 @@ def evaluate_episode_rtg(
     target_return = torch.tensor(ep_return, device=device, dtype=torch.float32).reshape(1, 1)
     timesteps = torch.tensor(0, device=device, dtype=torch.long).reshape(1, 1)
 
-    sim_states = []
+    episode_return, episode_length, crash = [], [], []
 
+    state, info = env.reset()
+    done = truncated = False
     episode_return, episode_length = 0, 0
-    for t in range(max_ep_len):
+    t = 0
+    while not (done or truncated):
 
         # add padding
         actions = torch.cat([actions, torch.zeros((1, act_dim), device=device)], dim=0)
@@ -116,26 +117,33 @@ def evaluate_episode_rtg(
         actions[-1] = action
         action = action.detach().cpu().numpy()
 
-        state, reward, done, _ = env.step(action)
+        optimal_action = np.argmax(action)
+
+        state, reward, done, truncated, info = env.step(optimal_action)
 
         cur_state = torch.from_numpy(state).to(device=device).reshape(1, state_dim)
         states = torch.cat([states, cur_state], dim=0)
         rewards[-1] = reward
 
-        if mode != 'delayed':
-            pred_return = target_return[0,-1] - (reward/scale)
-        else:
-            pred_return = target_return[0,-1]
+        # render the highway environment
+        if render:
+            env.render()
+
+        pred_return = target_return[0, -1]
+
         target_return = torch.cat(
             [target_return, pred_return.reshape(1, 1)], dim=1)
+
         timesteps = torch.cat(
             [timesteps,
-             torch.ones((1, 1), device=device, dtype=torch.long) * (t+1)], dim=1)
+             torch.ones((1, 1), device=device, dtype=torch.long) * (t + 1)], dim=1)
 
         episode_return += reward
         episode_length += 1
 
-        if done:
-            break
+        t += 1
 
-    return episode_return, episode_length
+    crash = truncated
+    env.close()
+
+    return episode_return, episode_length, crash

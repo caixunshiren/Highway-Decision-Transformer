@@ -136,28 +136,28 @@ def train(config, sequences, continue_training=False):
 
     def eval_episodes(target_rew):
         def fn(model):
-            returns, lengths = [], []
+            returns, lengths, crashes = [], [], []
             for _ in range(num_eval_episodes):
                 with torch.no_grad():
-                    ret = length = 0
-                    # ret, length = evaluate_episode_rtg(
-                    #     state_dim,
-                    #     act_dim,
-                    #     model,
-                    #     max_ep_len=max_ep_len,
-                    #     scale=scale,
-                    #     target_return=target_rew / scale,
-                    #     mode=config['mode'],
-                    #     state_mean=state_mean,
-                    #     state_std=state_std,
-                    #     device=device,)
+                    ret, length, crash = evaluate_episode_rtg(
+                        config['env'],
+                        state_dim,
+                        act_dim,
+                        model,
+                        state_mean=state_mean,
+                        state_std=state_std,
+                        device=device,
+                        target_return=target_rew,
+                        render=config['eval_render'],)
                 returns.append(ret)
                 lengths.append(length)
+                crashes.append(crash)
             return {
                 f'target_{target_rew}_return_mean': np.mean(returns),
                 f'target_{target_rew}_return_std': np.std(returns),
                 f'target_{target_rew}_length_mean': np.mean(lengths),
                 f'target_{target_rew}_length_std': np.std(lengths),
+                f'target_{target_rew}_not_crashed (out of {num_eval_episodes} runs)': np.sum(crashes),
             }
         return fn
 

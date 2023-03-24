@@ -4,6 +4,8 @@ Script for Experiment 1: MLP encoder Decision Transformer on categorical action 
 
 import numpy as np
 import torch
+import gymnasium as gym
+import highway_env
 
 from pipelines.train_dt import train
 
@@ -13,17 +15,23 @@ print('cuda availability:', torch.cuda.is_available())
 
 #checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer.pth')
 
+# set up environment
+env = gym.make("highway-fast-v0", render_mode="rgb_array")
+env.config["duration"] = 59
+
 config = {
-    'device': 'cuda',#'cuda',
+    'device': 'cpu',#'cuda',
+    'env': env,
+    'eval_render': True,
     'mode': 'normal',
     'experiment_name': 'mlp-decision-transformer-expert-mcts',
     'group_name': 'ECE324',
     'log_to_wandb': False,
     'max_iters': 10,
-    'num_steps_per_iter': 1000,#10000,
+    'num_steps_per_iter': 100,#10000,
     'context_length': 30,
     'batch_size': 32,
-    'num_eval_episodes': 50,
+    'num_eval_episodes': 10,
     'pct_traj': 1.0,
     'n_layer': 3,
     'embed_dim': 128,
@@ -33,9 +41,9 @@ config = {
     'model': None,#checkpoint['model'],
     'optimizer': None,#checkpoint['optimizer'],
     'learning_rate': 1e-4,
-    'warmup_steps': 1000,#10000,
+    'warmup_steps': 100,#10000,
     'weight_decay': 1e-4,
-    'env_targets': [],#[0.5, 1.0, 5.0, 10],
+    'env_targets': [0.5, 1.0, 1.5],
     'action_tanh': False, #True,
     'loss_fn': lambda s_hat, a_hat, r_hat, s, a, r: torch.nn.CrossEntropyLoss()(a_hat, torch.argmax(a, dim=1)),
     #lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a)**2),
