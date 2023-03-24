@@ -145,3 +145,4 @@ run/rl-video-episode-1.meta.json
 run/rl-video-episode-1.mp4
 run/rl-video-episode-2.meta.json
 pipelines/.DS_Store
+mcts_dataset.npy

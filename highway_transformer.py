@@ -13,8 +13,6 @@ from torch.nn import functional as F
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.vec_env import SubprocVecEnv
-import csv
-
 import highway_env
 highway_env.register_highway_envs()
 
@@ -284,7 +282,7 @@ def make_configure_env(**kwargs):
 
 
 env_kwargs = {
-    'id': "highway-v0",
+    'id': 'highway-v0',
     'config': {
         "lanes_count": 3,
         "vehicles_count": 15,
@@ -316,7 +314,7 @@ def display_vehicles_attention(agent_surface, sim_surface, env, model, min_atten
     v_attention = compute_vehicles_attention(env, model)
     for head in range(list(v_attention.values())[0].shape[0]):
         attention_surface = pygame.Surface(
-        sim_surface.get_size(), pygame.SRCALPHA)
+            sim_surface.get_size(), pygame.SRCALPHA)
         for vehicle, attention in v_attention.items():
             if attention[head] < min_attention:
                 continue
@@ -376,11 +374,7 @@ def compute_vehicles_attention(env, model):
 # ==================================
 
 if __name__ == "__main__":
-    
-    # Change this to False to load the trained model
-    train = False
-    
-    
+    train = True
     if train:
         n_cpu = 4
         policy_kwargs = dict(
@@ -396,40 +390,26 @@ if __name__ == "__main__":
                     policy_kwargs=policy_kwargs,
                     verbose=2)
         # Train the agent
-        model.learn(total_timesteps=500*1000)
+        model.learn(total_timesteps=200*1000)
         # Save the agent
-        model.save("highway_attention_ppo/model_new")
+        model.save("highway_attention_ppo/model_expert")
 
-    model = PPO.load("highway_attention_ppo/model_new")
+    model = PPO.load("highway_attention_ppo/model_expert")
     env = make_configure_env(**env_kwargs)
-    # env.render()
-    # env.viewer.set_agent_display(functools.partial(
-    #     display_vehicles_attention, env=env, model=model))
+    env.render()
+    env.viewer.set_agent_display(functools.partial(
+        display_vehicles_attention, env=env, model=model))
     
-    datatest = []
     
-    for id in range(5000):
+    for episode in range(5):
         obs, info = env.reset()
         done = truncated = False
-        episode_data = []
+        total_reward = 0
         while not (done or truncated):
             action, _ = model.predict(obs)
             obs, reward, done, truncated, info = env.step(action)
-            episode_data.append([obs, action, reward])
-            # env.render()
-        episode_data.append(info['crashed'])
-        print('Episode: ', id, ', Crashed?: ', info['crashed'])
-        datatest.append(episode_data)
-    
-    env.close()
-    
-    np.save('dataset_5000.npy', np.array(datatest, dtype=object), allow_pickle=True)
-    b = np.load('dataset_5000.npy', allow_pickle=True)
-
-    # with open('transformer_dataset.csv', 'w', newline='') as csvfile:
-
-    #     # Create a CSV writer object
-    #     csvwriter = csv.writer(csvfile, delimiter=',')
-
-    #     # Write the list to the CSV file
-    #     csvwriter.writerow(datatest)
+            total_reward += reward
+            env.render()
+            
+    print('Episode: ', episode, ', Crashed?: ',
+            info['crashed'], 'Total Reward:', total_reward)
