@@ -31,13 +31,15 @@ def train(config, sequences, continue_training=False):
                     states: np.array of shape (T, *state_dim)
                     actions: np.array of shape (T, *action_dim)
                     rewards: np.array of shape (T, )
+                    'dones': np.array([0,0, ..., 1])} -> trivial for our case as we always have one
+                                       scene for each episode. Dones is also not used in experiments.
 
-    some code adapted from https://github.com/kzl/decision-transformer/blob/master/gym/experiment.py
+    code partially adapted from https://github.com/kzl/decision-transformer/blob/master/gym/experiment.py
     """
     assert sequences is not None, 'No sequences provided for training.'
     device = config['device']
-    act_dim = sequences[0]['actions'].shape[1:]
-    state_dim = sequences[0]['actions'].shape[1:]
+    act_dim = np.squeeze(sequences[0]['actions'].shape[1:])
+    state_dim = np.squeeze(sequences[0]['states'].shape[1:])
     max_ep_len = max([len(path['states']) for path in sequences])  # take it as the longest trajectory
     scale = np.mean([len(path['states']) for path in sequences])  # scale for rtg
 
@@ -159,11 +161,14 @@ def train(config, sequences, continue_training=False):
             }
         return fn
 
+    print("state_dim:", state_dim, " act_dim:", act_dim, " K:", K, " max_ep_len:", max_ep_len, " scale:", scale)
+
     model = DecisionTransformer(
         state_dim=state_dim,
         act_dim=act_dim,
         max_length=K,
         max_ep_len=max_ep_len,
+        action_tanh=config['action_tanh'],
         hidden_size=config['embed_dim'],
         n_layer=config['n_layer'],
         n_head=config['n_head'],
@@ -173,31 +178,31 @@ def train(config, sequences, continue_training=False):
         resid_pdrop=config['dropout'],
         attn_pdrop=config['dropout'],
     )
+    optimizer = torch.optim.AdamW(
+        model.parameters(),
+        lr=config['learning_rate'],
+        weight_decay=config['weight_decay'],
+    )
 
     if continue_training:
-        model = config['model']
-        optimizer = config['optimizer']
-        scheduler = config['scheduler']
+        model.load_state_dict(config['model'])
+        optimizer.load_state_dict(config['optimizer'])
     else:
         model = model.to(device=device)
-        warmup_steps = config['warmup_steps']
-        optimizer = torch.optim.AdamW(
-            model.parameters(),
-            lr=config['learning_rate'],
-            weight_decay=config['weight_decay'],
-        )
-        scheduler = torch.optim.lr_scheduler.LambdaLR(
-            optimizer,
-            lambda steps: min((steps+1)/warmup_steps, 1)
-        )
+    warmup_steps = config['warmup_steps']
+    scheduler = torch.optim.lr_scheduler.LambdaLR(
+        optimizer,
+        lambda steps: min((steps+1)/warmup_steps, 1)
+    )
     trainer = SequenceTrainer(
         model=model,
         optimizer=optimizer,
         batch_size=batch_size,
         get_batch=get_batch,
         scheduler=scheduler,
-        loss_fn=lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a)**2),
-        eval_fns=[eval_episodes(tar) for tar in config['env_targets']]
+        loss_fn=config['loss_fn'],
+        eval_fns=[eval_episodes(tar) for tar in config['env_targets']],
+        err_fn=config['err_fn']
     )
 
     if config['log_to_wandb']:

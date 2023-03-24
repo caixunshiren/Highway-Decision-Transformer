@@ -11,14 +11,16 @@ from pipelines.train_dt import train
 print(torch.version.cuda)
 print('cuda availability:', torch.cuda.is_available())
 
+#checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer.pth')
+
 config = {
     'device': 'cuda',#'cuda',
     'mode': 'normal',
-    'experiment_name': 'mlp-decision-transformer',
+    'experiment_name': 'mlp-decision-transformer-expert-mcts',
     'group_name': 'ECE324',
     'log_to_wandb': False,
-    'max_iters': 100,
-    'num_steps_per_iter': 10000,#10000,
+    'max_iters': 10,
+    'num_steps_per_iter': 1000,#10000,
     'context_length': 30,
     'batch_size': 32,
     'num_eval_episodes': 50,
@@ -28,10 +30,10 @@ config = {
     'n_head': 4,
     'activation_function': 'relu',
     'dropout': 0.1,
-    'model': None,
-    'optimizer': None,
+    'model': None,#checkpoint['model'],
+    'optimizer': None,#checkpoint['optimizer'],
     'learning_rate': 1e-4,
-    'warmup_steps': 10000,#10000,
+    'warmup_steps': 1000,#10000,
     'weight_decay': 1e-4,
     'env_targets': [],#[0.5, 1.0, 5.0, 10],
     'action_tanh': False, #True,
@@ -54,11 +56,10 @@ def load_sequence(row):
                     rewards: np.array of shape (T, )
                     dones: np.array of shape (T, )
     '''
-    crashed = row[-1]
     states = []
     actions = []
     rewards = []
-    for state, action, reward in row[:-1]:
+    for state, action, reward in row:
         # flatten state for mlp encoder
         states.append(state.reshape(-1))
         one_hot_action = np.zeros(5)
@@ -67,7 +68,7 @@ def load_sequence(row):
         rewards.append(reward)
     states = np.array(states)
     actions = np.array(actions)
-    rewards = np.array(rewards) if not crashed else -np.array(rewards)
+    rewards = np.array(rewards)
     dones = np.zeros_like(rewards)
     dones[-1] = 1
     sequence = {'states': states, 'actions': actions, 'rewards': rewards, 'dones': dones}
@@ -75,9 +76,9 @@ def load_sequence(row):
 
 
 # Load sequences
-A = np.load('../data/dataset_5000.npy', allow_pickle=True)
+A = np.load('../data/mcts_dataset_expert.npy', allow_pickle=True)
 
-sequences = [load_sequence(row) for row in A if row[-1] is False]
+sequences = [load_sequence(row) for row in A]
 
 # Train model
 model, optimizer, scheduler = train(config, sequences, continue_training=False)

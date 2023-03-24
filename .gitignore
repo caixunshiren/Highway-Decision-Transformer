@@ -131,6 +131,7 @@ dmypy.json
 .pyre/
 .idea
 .DS_Store
+data
 pipelines/.DS_Store
 .gitignore
 dataset_5000.npy
