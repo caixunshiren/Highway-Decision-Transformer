@@ -51,7 +51,8 @@ for n in names:
 print(len(sequences))
 
 # load model
-checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer-expert-mcts-20-hs.pth', map_location='cpu', pickle_module=pickle)
+checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer-expert-mcts.pth')
+
 config = {
     'device': 'cpu',#'cuda',
     'eval_render': True,
@@ -59,28 +60,29 @@ config = {
     'experiment_name': 'mlp-decision-transformer-expert-mcts',
     'group_name': 'ECE324',
     'log_to_wandb': False,
-    'max_iters': 15,
-    'num_steps_per_iter': 100,#10000,
-    'context_length': 15,
+    'max_iters': 20,
+    'num_steps_per_iter': 10,#10000,
+    'context_length': 20,
     'batch_size': 64,
     'num_eval_episodes': 5,
     'pct_traj': 1.0,
-    'n_layer': 2,
-    'embed_dim': 20,
-    'n_head': 1,
+    'n_layer': 3,
+    'embed_dim': 128,
+    'n_head': 4,
     'activation_function': 'relu',
-    'dropout': 0.1,
+    'dropout': 0.5,
     'model': checkpoint['model'],
     'optimizer': checkpoint['optimizer'],
-    'learning_rate': 1e-5,
-    'warmup_steps': 100,#10000,
-    'weight_decay': 1e-5,
+    'learning_rate': 1e-6,
+    'warmup_steps': 20,#10000,
+    'weight_decay': 1e-6,
     'env_targets': [0.8, 1.0, 1.2, 2.0],
     'action_tanh': False, #True,
     'loss_fn': lambda s_hat, a_hat, r_hat, s, a, r: torch.nn.CrossEntropyLoss()(a_hat, torch.argmax(a, dim=1)),
     #lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a)**2),
     'err_fn': lambda a_hat, a: torch.sum(torch.argmax(a_hat, dim=1) != torch.argmax(a, dim=1))/a.shape[0],
 }
+
 
 env = gym.make("highway-fast-v0", render_mode="rgb_array")
 env.config["duration"] = 59

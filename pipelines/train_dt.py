@@ -214,8 +214,20 @@ def train(config, sequences, continue_training=False):
         )
         # wandb.watch(model)  # wandb has some bug
 
+    max_ret = 0
     for iteration in range(config['max_iters']):
         outputs = trainer.train_iteration(num_steps=config['num_steps_per_iter'], iter_num=iteration+1, print_logs=True)
+        eval_rets = [outputs[f'evaluation/target_{target_rew}_return_mean'] for target_rew in config['env_targets']]
+        mean_ret = np.mean(eval_rets)
+        if mean_ret > max_ret:
+            max_ret = mean_ret
+            if config['log_highest_return']:
+                print("Saving model with highest mean return so far", mean_ret)
+                checkpoint = {
+                    'model': model.state_dict(),
+                    'optimizer': optimizer.state_dict(),
+                }
+                torch.save(checkpoint, f'saved_models/best-{round(max_ret, 2)}-checkpoint-{config["experiment_name"]}.pth')
         if config['log_to_wandb']:
             wandb.log(outputs)
 
