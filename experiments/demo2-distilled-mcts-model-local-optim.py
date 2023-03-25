@@ -52,7 +52,7 @@ for n in names:
 print(len(sequences))
 
 # load model
-checkpoint = torch.load('saved_models/best-38.35-checkpoint-mlp-decision-transformer-expert-mcts-distilled.pth', map_location='cpu', pickle_module=pickle)
+checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer-expert-mcts-distilled.pth', map_location='cpu', pickle_module=pickle)
 config = {
     'device': 'cpu',#'cuda',
     'eval_render': True,

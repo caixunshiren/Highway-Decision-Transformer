@@ -25,26 +25,26 @@ config = {
     'env': env,
     'eval_render': False,
     'mode': 'normal',
-    'experiment_name': 'mlp-decision-transformer-expert-mcts',
+    'experiment_name': 'mlp-decision-transformer-expert-mcts-distilled-3',
     'group_name': 'ECE324',
     'log_to_wandb': False,
-    'max_iters': 20,
-    'num_steps_per_iter': 10,#10000,
-    'context_length': 20,
-    'batch_size': 64,
-    'num_eval_episodes': 5,
+    'max_iters': 1000,
+    'num_steps_per_iter': 50,#10000,
+    'context_length': 10,#15,
+    'batch_size': 32,#64,
+    'num_eval_episodes': 10,
     'pct_traj': 1.0,
-    'n_layer': 3,
-    'embed_dim': 128,
-    'n_head': 4,
+    'n_layer': 2,
+    'embed_dim': 20,
+    'n_head': 1,
     'activation_function': 'relu',
-    'dropout': 0.5,
+    'dropout': 0.2,#0.3,
     'model': checkpoint['model'],
     'optimizer': checkpoint['optimizer'],
-    'learning_rate': 1e-6,
-    'warmup_steps': 20,#10000,
-    'weight_decay': 1e-6,
-    'env_targets': [0.8, 1.0, 1.2, 2.0],
+    'learning_rate': 3e-6,#1e-5,
+    'warmup_steps': 100,#10000,
+    'weight_decay': 1e-4,
+    'env_targets': [0.8, 1.0, 1.3],
     'action_tanh': False, #True,
     'loss_fn': lambda s_hat, a_hat, r_hat, s, a, r: torch.nn.CrossEntropyLoss()(a_hat, torch.argmax(a, dim=1)),
     #lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a)**2),
@@ -63,7 +63,7 @@ for n in names:
 print(len(sequences))
 
 # Train model
-model, optimizer, scheduler = train(config, sequences, continue_training=True)
+model, optimizer, scheduler = train(config, sequences, continue_training=False)
 
 # save model as checkpoint
 checkpoint = {

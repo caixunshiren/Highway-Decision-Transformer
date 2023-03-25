@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from modules.decision_transformer import DecisionTransformer
 import pickle
-from pipelines.evaluation.evaluate_episodes import evaluate_episode_rtg, evaluate_episode_rtg_nonstop
+from pipelines.evaluation.evaluate_episodes import evaluate_episode_rtg
 
 
 # load training sequences
@@ -52,7 +52,7 @@ for n in names:
 print(len(sequences))
 
 # load model
-checkpoint = torch.load('saved_models/best-38.35-checkpoint-mlp-decision-transformer-expert-mcts-distilled.pth', map_location='cpu', pickle_module=pickle)
+checkpoint = torch.load('saved_models/best-11.95-checkpoint-mlp-decision-transformer-expert-mcts-distilled-3.pth', map_location='cpu', pickle_module=pickle)
 config = {
     'device': 'cpu',#'cuda',
     'eval_render': True,
@@ -62,15 +62,15 @@ config = {
     'log_to_wandb': False,
     'max_iters': 15,
     'num_steps_per_iter': 100,#10000,
-    'context_length': 15,
+    'context_length': 10,
     'batch_size': 64,
     'num_eval_episodes': 5,
     'pct_traj': 1.0,
     'n_layer': 2,
-    'embed_dim': 16,
-    'n_head': 2,
+    'embed_dim': 20,
+    'n_head': 1,
     'activation_function': 'relu',
-    'dropout': 0.2,
+    'dropout': 0.3,
     'model': checkpoint['model'],
     'optimizer': checkpoint['optimizer'],
     'learning_rate': 1e-5,
@@ -84,8 +84,7 @@ config = {
 }
 
 env = gym.make("highway-fast-v0", render_mode="rgb_array")
-env.config["duration"] = 100
-env.config['policy_frequency'] = 1
+env.config["duration"] = 59
 
 sample = True
 (state, info), done = env.reset(), False
@@ -132,17 +131,16 @@ states = np.concatenate(states, axis=0)
 state_mean, state_std = np.mean(states, axis=0), np.std(states, axis=0) + 1e-6
 num_timesteps = sum(traj_lens)
 
-target_return = 1.0
+target_return = 1.5
 n_evals = 10
 
 # run eval episodes
 for i in range(n_evals):
-    evaluate_episode_rtg_nonstop(
+    evaluate_episode_rtg(
         env,
         state_dim,
         act_dim,
         model,
-        max_ep_len=max_ep_len,
         state_mean=state_mean,
         state_std=state_std,
         device='cpu',
