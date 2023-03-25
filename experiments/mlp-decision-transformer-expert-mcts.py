@@ -14,7 +14,7 @@ from pipelines.loading_utils import load_sequence
 print(torch.version.cuda)
 print('cuda availability:', torch.cuda.is_available())
 
-#checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer.pth')
+checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer-expert-mcts.pth', map_location=torch.device('cpu'))
 
 # set up environment
 env = gym.make("highway-fast-v0", render_mode="rgb_array")
@@ -39,8 +39,8 @@ config = {
     'n_head': 8,
     'activation_function': 'relu',
     'dropout': 0.1,
-    'model': None,#checkpoint['model'],
-    'optimizer': None,#checkpoint['optimizer'],
+    'model': checkpoint['model'],
+    'optimizer': checkpoint['optimizer'],
     'learning_rate': 1e-4,
     'warmup_steps': 100,#10000,
     'weight_decay': 1e-4,
@@ -61,7 +61,7 @@ for n in names:
     sequences += sequence
 
 # Train model
-model, optimizer, scheduler = train(config, sequences, continue_training=False)
+model, optimizer, scheduler = train(config, sequences, continue_training=True)
 
 # save model as checkpoint
 checkpoint = {
