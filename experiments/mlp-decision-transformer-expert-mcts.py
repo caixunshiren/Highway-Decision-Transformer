@@ -14,7 +14,7 @@ from pipelines.loading_utils import load_sequence
 print(torch.version.cuda)
 print('cuda availability:', torch.cuda.is_available())
 
-#checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer.pth')
+checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer-expert-mcts.pth')
 
 # set up environment
 env = gym.make("highway-fast-v0", render_mode="rgb_array")
@@ -23,32 +23,33 @@ env.config["duration"] = 59
 config = {
     'device': 'cpu',#'cuda',
     'env': env,
-    'eval_render': True,
+    'eval_render': False,
     'mode': 'normal',
     'experiment_name': 'mlp-decision-transformer-expert-mcts',
     'group_name': 'ECE324',
     'log_to_wandb': False,
-    'max_iters': 10,
-    'num_steps_per_iter': 100,#10000,
-    'context_length': 40,
-    'batch_size': 32,
+    'max_iters': 2000,
+    'num_steps_per_iter': 50,#10000,
+    'context_length': 20,
+    'batch_size': 64,
     'num_eval_episodes': 10,
     'pct_traj': 1.0,
     'n_layer': 3,
     'embed_dim': 128,
-    'n_head': 8,
+    'n_head': 4,
     'activation_function': 'relu',
-    'dropout': 0.1,
-    'model': None,#checkpoint['model'],
-    'optimizer': None,#checkpoint['optimizer'],
-    'learning_rate': 1e-4,
+    'dropout': 0.5,
+    'model': checkpoint['model'],
+    'optimizer': checkpoint['optimizer'],
+    'learning_rate': 1e-6,
     'warmup_steps': 100,#10000,
-    'weight_decay': 1e-4,
-    'env_targets': [0.5, 1.0, 1.5],
+    'weight_decay': 1e-6,
+    'env_targets': [0.8, 1.0, 1.3],
     'action_tanh': False, #True,
     'loss_fn': lambda s_hat, a_hat, r_hat, s, a, r: torch.nn.CrossEntropyLoss()(a_hat, torch.argmax(a, dim=1)),
     #lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a)**2),
     'err_fn': lambda a_hat, a: torch.sum(torch.argmax(a_hat, dim=1) != torch.argmax(a, dim=1))/a.shape[0],
+    'log_highest_return': True,
 }
 
 # Load sequences
@@ -59,6 +60,7 @@ for n in names:
     A = np.load(fname, allow_pickle=True)
     sequence = [load_sequence(row) for row in A]
     sequences += sequence
+print(len(sequences))
 
 # Train model
 model, optimizer, scheduler = train(config, sequences, continue_training=False)
