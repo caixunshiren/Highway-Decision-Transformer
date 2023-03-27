@@ -66,3 +66,10 @@ def load_sequence_w_crashes(row):
     dones[-1] = 1
     sequence = {'states': states, 'actions': actions, 'rewards': rewards, 'dones': dones}
     return sequence
+
+
+def get_action_count(sequences):
+    actions = np.zeros(5)
+    for sequence in sequences:
+        actions += np.sum(sequence['actions'], axis=0)
+    return actions

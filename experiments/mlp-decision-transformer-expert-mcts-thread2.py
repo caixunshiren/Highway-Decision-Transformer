@@ -14,7 +14,7 @@ from pipelines.loading_utils import load_sequence, get_action_count
 print(torch.version.cuda)
 print('cuda availability:', torch.cuda.is_available())
 
-checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer-expert-mcts.pth', map_location=torch.device('cpu'))
+checkpoint = torch.load('saved_models/best-25.71-checkpoint-mlp-decision-transformer-expert-mcts-distilled-8.pth', map_location=torch.device('cpu'))
 
 # set up environment
 env = gym.make("highway-fast-v0", render_mode="rgb_array")
@@ -36,28 +36,29 @@ print("action frequencies:", action_counts)
 config = {
     'device': 'cpu',#'cuda',
     'env': env,
-    'eval_render': False,
+    'eval_render': True,
     'mode': 'normal',
-    'experiment_name': 'mlp-decision-transformer-expert-mcts-distilled-4',
+    'experiment_name': 'mlp-decision-transformer-expert-mcts-distilled-11',
     'group_name': 'ECE324',
     'log_to_wandb': False,
     'max_iters': 1000,
-    'num_steps_per_iter': 100,#10000,
+    'num_steps_per_iter': 1000,#10000,
     'context_length': 20,#15,
     'batch_size': 32,#64,
-    'num_eval_episodes': 10,
+    'num_eval_episodes': 8,
     'pct_traj': 1.0,
-    'n_layer': 4,
-    'embed_dim': 16,
-    'n_head': 4,
+    'n_layer': 8,
+    'embed_dim': 8,
+    'n_head': 2,
+    'state_encoder': 'mlp',
     'activation_function': 'relu',
     'dropout': 0.2,#0.3,
     'model': checkpoint['model'],
     'optimizer': checkpoint['optimizer'],
-    'learning_rate': 1e-4,
-    'warmup_steps': 10,#10000,
+    'learning_rate': 5e-5,
+    'warmup_steps': 100,#10000,
     'weight_decay': 1e-5,
-    'env_targets': [0.8, 1.0, 1.3],
+    'env_targets': [0.85, 1.0],
     'action_tanh': False, #True,
     'loss_fn': lambda s_hat, a_hat, r_hat, s, a, r: torch.nn.CrossEntropyLoss()(a_hat, torch.argmax(a, dim=1)),
     #lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a)**2),

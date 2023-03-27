@@ -52,7 +52,7 @@ for n in names:
 print(len(sequences))
 
 # load model
-checkpoint = torch.load('saved_models/best-29.11-checkpoint-mlp-decision-transformer-expert-mcts.pth')
+checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer-expert-mcts-large.pth')
 
 config = {
     'device': 'cpu',#'cuda',
@@ -67,9 +67,9 @@ config = {
     'batch_size': 64,
     'num_eval_episodes': 10,
     'pct_traj': 1.0,
-    'n_layer': 3,
-    'embed_dim': 128,
-    'n_head': 4,
+    'n_layer': 4,
+    'embed_dim': 256,
+    'n_head': 8,
     'activation_function': 'relu',
     'dropout': 0.5,
     'model': checkpoint['model'],

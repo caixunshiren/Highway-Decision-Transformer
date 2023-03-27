@@ -78,6 +78,7 @@ def evaluate_episode_rtg(
         target_return=None,
         render=True,
         sample=False,
+        scale=60,
     ):
 
     model.eval()
@@ -93,8 +94,6 @@ def evaluate_episode_rtg(
     states = torch.from_numpy(state).reshape(1, state_dim).to(device=device, dtype=torch.float32)
     actions = torch.zeros((0, act_dim), device=device, dtype=torch.float32)
     rewards = torch.zeros(0, device=device, dtype=torch.float32)
-
-    highway_env.register_highway_envs()
 
     ep_return = target_return
     target_return = torch.tensor(ep_return, device=device, dtype=torch.float32).reshape(1, 1)
@@ -138,7 +137,7 @@ def evaluate_episode_rtg(
         if render:
             env.render()
 
-        pred_return = target_return[0, -1]
+        pred_return = target_return[0, -1] - (reward/scale)
 
         target_return = torch.cat(
             [target_return, pred_return.reshape(1, 1)], dim=1)
@@ -170,7 +169,8 @@ def evaluate_episode_rtg_nonstop(
         target_return=None,
         render=True,
         sample=False,
-    ):
+        scale=60,
+):
 
     model.eval()
     model.to(device=device)
@@ -185,8 +185,6 @@ def evaluate_episode_rtg_nonstop(
     states = torch.from_numpy(state).reshape(1, state_dim).to(device=device, dtype=torch.float32)
     actions = torch.zeros((0, act_dim), device=device, dtype=torch.float32)
     rewards = torch.zeros(0, device=device, dtype=torch.float32)
-
-    highway_env.register_highway_envs()
 
     ep_return = target_return
     target_return = torch.tensor(ep_return, device=device, dtype=torch.float32).reshape(1, 1)
@@ -240,7 +238,7 @@ def evaluate_episode_rtg_nonstop(
         if render:
             env.render()
 
-        pred_return = target_return[0, -1]
+        pred_return = target_return[0, -1] - (reward/scale)
 
         target_return = torch.cat(
             [target_return, pred_return.reshape(1, 1)], dim=1)

@@ -7,6 +7,21 @@ from pipelines.evaluation.evaluate_episodes import evaluate_episode_rtg
 from pipelines.training.seq_trainer import SequenceTrainer
 from modules.decision_transformer import DecisionTransformer
 
+from prettytable import PrettyTable
+
+
+def count_parameters(model):
+    table = PrettyTable(["Modules", "Parameters"])
+    total_params = 0
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad: continue
+        params = parameter.numel()
+        table.add_row([name, params])
+        total_params += params
+    print(table)
+    print(f"Total Trainable Params: {total_params}")
+    return total_params
+
 
 def discount_cumsum(x, gamma):
     """
@@ -57,6 +72,8 @@ def train(config, sequences, continue_training=False):
     # used for input normalization
     states = np.concatenate(states, axis=0)
     state_mean, state_std = np.mean(states, axis=0), np.std(states, axis=0) + 1e-6
+    state_mean[[0,5,10,15,20]] = 0
+    state_std[[0,5,10,15,20]] = 1
     num_timesteps = sum(traj_lens)
 
     print('=' * 50)
@@ -97,32 +114,41 @@ def train(config, sequences, continue_training=False):
         s, a, r, d, rtg, timesteps, mask = [], [], [], [], [], [], []
         for i in range(batch_size):
             traj = sequences[int(sorted_inds[batch_inds[i]])]
-            si = random.randint(0, traj['rewards'].shape[0] - 1)
+            si = random.randint(1, traj['rewards'].shape[0] - 1)
 
             # get sequences from dataset
-            s.append(traj['states'][si:si + max_len].reshape(1, -1, state_dim))
-            a.append(traj['actions'][si:si + max_len].reshape(1, -1, act_dim))
-            r.append(traj['rewards'][si:si + max_len].reshape(1, -1, 1))
+            s.append(traj['states'][max(si - max_len, 0):si].reshape(1, -1, state_dim))
+            a.append(traj['actions'][max(si - max_len, 0):si].reshape(1, -1, act_dim))
+            r.append(traj['rewards'][max(si - max_len, 0):si].reshape(1, -1, 1))
             if 'terminals' in traj:
-                d.append(traj['terminals'][si:si + max_len].reshape(1, -1))
+                d.append(traj['terminals'][max(si - max_len, 0):si].reshape(1, -1))
             else:
-                d.append(traj['dones'][si:si + max_len].reshape(1, -1))
-            timesteps.append(np.arange(si, si + s[-1].shape[1]).reshape(1, -1))
+                d.append(traj['dones'][max(si - max_len, 0):si].reshape(1, -1))
+            timesteps.append(np.arange(max(si - max_len, 0), max(si - max_len, 0) + s[-1].shape[1]).reshape(1, -1))
             timesteps[-1][timesteps[-1] >= max_ep_len] = max_ep_len - 1  # padding cutoff
-            rtg.append(discount_cumsum(traj['rewards'][si:], gamma=1.)[:s[-1].shape[1] + 1].reshape(1, -1, 1))
+            rtg.append(
+                discount_cumsum(traj['rewards'][max(si - max_len, 0):si], gamma=1.)[:s[-1].shape[1] + 1].reshape(1, -1,
+                                                                                                                 1))
             if rtg[-1].shape[1] <= s[-1].shape[1]:
                 rtg[-1] = np.concatenate([rtg[-1], np.zeros((1, 1, 1))], axis=1)
 
             # padding and state + reward normalization
             tlen = s[-1].shape[1]
-            s[-1] = np.concatenate([np.zeros((1, max_len - tlen, state_dim)), s[-1]], axis=1)
             s[-1] = (s[-1] - state_mean) / state_std
-            a[-1] = np.concatenate([np.ones((1, max_len - tlen, act_dim)) * -10., a[-1]], axis=1)
+            s[-1] = np.concatenate([np.zeros((1, max_len - tlen, state_dim)), s[-1]], axis=1)
+            a[-1] = np.concatenate([np.ones((1, max_len - tlen, act_dim)) * 0, a[-1]], axis=1)
             r[-1] = np.concatenate([np.zeros((1, max_len - tlen, 1)), r[-1]], axis=1)
             d[-1] = np.concatenate([np.ones((1, max_len - tlen)) * 2, d[-1]], axis=1)
             rtg[-1] = np.concatenate([np.zeros((1, max_len - tlen, 1)), rtg[-1]], axis=1) / scale
             timesteps[-1] = np.concatenate([np.zeros((1, max_len - tlen)), timesteps[-1]], axis=1)
             mask.append(np.concatenate([np.zeros((1, max_len - tlen)), np.ones((1, tlen))], axis=1))
+
+            print("index:", si)
+            print(s[-1].shape, s[-1])
+            print(a[-1])
+            print(r[-1])
+            print(timesteps[-1])
+            print(mask[-1])
 
         s = torch.from_numpy(np.concatenate(s, axis=0)).to(dtype=torch.float32, device=device)
         a = torch.from_numpy(np.concatenate(a, axis=0)).to(dtype=torch.float32, device=device)
@@ -132,7 +158,63 @@ def train(config, sequences, continue_training=False):
         timesteps = torch.from_numpy(np.concatenate(timesteps, axis=0)).to(dtype=torch.long, device=device)
         mask = torch.from_numpy(np.concatenate(mask, axis=0)).to(device=device)
 
+        #print(a.shape)
+        #print(a)
+        #print(s.shape)
+        #print(s[0,0])
+        # print(r.shape)
+        # print(r)
+        #print(timesteps.shape)
+        #print(timesteps)
+
         return s, a, r, d, rtg, timesteps, mask
+    # def get_batch(batch_size=256, max_len=K):
+    #     batch_inds = np.random.choice(
+    #         np.arange(num_trajectories),
+    #         size=batch_size,
+    #         replace=True,
+    #         p=p_sample,  # reweights so we sample according to timesteps
+    #     )
+    #
+    #     s, a, r, d, rtg, timesteps, mask = [], [], [], [], [], [], []
+    #     for i in range(batch_size):
+    #         traj = sequences[int(sorted_inds[batch_inds[i]])]
+    #         si = random.randint(0, traj['rewards'].shape[0] - 1)
+    #
+    #         # get sequences from dataset
+    #         s.append(traj['states'][si:si + max_len].reshape(1, -1, state_dim))
+    #         a.append(traj['actions'][si:si + max_len].reshape(1, -1, act_dim))
+    #         r.append(traj['rewards'][si:si + max_len].reshape(1, -1, 1))
+    #         if 'terminals' in traj:
+    #             d.append(traj['terminals'][si:si + max_len].reshape(1, -1))
+    #         else:
+    #             d.append(traj['dones'][si:si + max_len].reshape(1, -1))
+    #         timesteps.append(np.arange(si, si + s[-1].shape[1]).reshape(1, -1))
+    #         timesteps[-1][timesteps[-1] >= max_ep_len] = max_ep_len - 1  # padding cutoff
+    #         rtg.append(discount_cumsum(traj['rewards'][si:], gamma=1.)[:s[-1].shape[1] + 1].reshape(1, -1, 1))
+    #         if rtg[-1].shape[1] <= s[-1].shape[1]:
+    #             rtg[-1] = np.concatenate([rtg[-1], np.zeros((1, 1, 1))], axis=1)
+    #
+    #         # padding and state + reward normalization
+    #         tlen = s[-1].shape[1]
+    #         s[-1] = np.concatenate([np.zeros((1, max_len - tlen, state_dim)), s[-1]], axis=1)
+    #         s[-1] = (s[-1] - state_mean) / state_std
+    #         a[-1] = np.concatenate([np.ones((1, max_len - tlen, act_dim)) * -10., a[-1]], axis=1)
+    #         r[-1] = np.concatenate([np.zeros((1, max_len - tlen, 1)), r[-1]], axis=1)
+    #         d[-1] = np.concatenate([np.ones((1, max_len - tlen)) * 2, d[-1]], axis=1)
+    #         rtg[-1] = np.concatenate([np.zeros((1, max_len - tlen, 1)), rtg[-1]], axis=1) / scale
+    #         timesteps[-1] = np.concatenate([np.zeros((1, max_len - tlen)), timesteps[-1]], axis=1)
+    #         mask.append(np.concatenate([np.zeros((1, max_len - tlen)), np.ones((1, tlen))], axis=1))
+    #
+    #     s = torch.from_numpy(np.concatenate(s, axis=0)).to(dtype=torch.float32, device=device)
+    #     a = torch.from_numpy(np.concatenate(a, axis=0)).to(dtype=torch.float32, device=device)
+    #     r = torch.from_numpy(np.concatenate(r, axis=0)).to(dtype=torch.float32, device=device)
+    #     d = torch.from_numpy(np.concatenate(d, axis=0)).to(dtype=torch.long, device=device)
+    #     rtg = torch.from_numpy(np.concatenate(rtg, axis=0)).to(dtype=torch.float32, device=device)
+    #     timesteps = torch.from_numpy(np.concatenate(timesteps, axis=0)).to(dtype=torch.long, device=device)
+    #     mask = torch.from_numpy(np.concatenate(mask, axis=0)).to(device=device)
+    #
+    #     return s, a, r, d, rtg, timesteps, mask
 
     def eval_episodes(target_rew):
         def fn(model):
@@ -172,6 +254,7 @@ def train(config, sequences, continue_training=False):
         hidden_size=config['embed_dim'],
         n_layer=config['n_layer'],
         n_head=config['n_head'],
+        state_encoder=config.get('state_encoder', None),
         n_inner=4 * config['embed_dim'],
         activation_function=config['activation_function'],
         n_positions=1024,
@@ -214,6 +297,8 @@ def train(config, sequences, continue_training=False):
         )
         # wandb.watch(model)  # wandb has some bug
 
+    count_parameters(model)
+
     max_ret = 0
     for iteration in range(config['max_iters']):
         outputs = trainer.train_iteration(num_steps=config['num_steps_per_iter'], iter_num=iteration+1, print_logs=True)
@@ -228,7 +313,16 @@ def train(config, sequences, continue_training=False):
                     'optimizer': optimizer.state_dict(),
                 }
                 torch.save(checkpoint, f'saved_models/best-{round(max_ret, 2)}-checkpoint-{config["experiment_name"]}.pth')
+        if iteration%10 == 0 and iteration > 0:
+            checkpoint = {
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+            }
+            torch.save(checkpoint, f'saved_models/iter-{iteration}-checkpoint-{config["experiment_name"]}.pth')
+
         if config['log_to_wandb']:
             wandb.log(outputs)
 
     return model, optimizer, scheduler
+
+
