@@ -127,13 +127,15 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# local models
+*.pth
+
 # Pyre type checker
 .pyre/
 .idea
 .DS_Store
 data
 pipelines/.DS_Store
-.gitignore
 dataset_5000.npy
 highway_attention_ppo/model_fast.zip
 highway_attention_ppo/model_new.zip
@@ -145,4 +147,23 @@ run/rl-video-episode-0.mp4
 run/rl-video-episode-1.meta.json
 run/rl-video-episode-1.mp4
 run/rl-video-episode-2.meta.json
-experiments/saved_models
+pipelines/.DS_Store
+higwhay_venv
+mcts_dataset_alldata_eight.npy
+mcts_dataset_alldata_five.npy
+mcts_dataset_alldata_four.npy
+mcts_dataset_alldata_second.npy
+mcts_dataset_alldata_seven.npy
+mcts_dataset_alldata_six.npy
+mcts_dataset_alldata_third.npy
+mcts_dataset_alldata.npy
+mcts_dataset_expert_eight.npy
+mcts_dataset_expert_five.npy
+mcts_dataset_expert_four.npy
+mcts_dataset_expert_second.npy
+mcts_dataset_expert_seven.npy
+mcts_dataset_expert_six.npy
+mcts_dataset_expert_third.npy
+mcts_dataset_expert.npy
+mcts_dataset_seocond.npy
+mcts_dataset.npy

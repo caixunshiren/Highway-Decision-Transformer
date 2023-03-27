@@ -32,26 +32,32 @@ agent_config = {
 agent = agent_factory(env, agent_config)
 
 dataset = []
+all_data = []
 # Run episode
-for episode in range(2000):
+for episode in range(3000):
     obs, info = env.reset()
     done = truncated = False
     episode_data = []
+    total_reward = 0
     while not (done or truncated):
     # for step in range(env.unwrapped.config["duration"]):
         action = agent.act(obs)
         obs, reward, done, truncated, info = env.step(action)
         episode_data.append([obs, action, reward])
+        total_reward += reward
         # if done or truncated:
         #     break
         # env.render()
-    print('Episode: ', episode, ', Crashed?: ', info['crashed'])
-    if not (done or truncated):
+    print('Episode: ', episode, ', Crashed? ', info['crashed'], ', Episode reward: ', round(total_reward,3))
+    all_data.append(episode_data)
+    if not info['crashed']:
         dataset.append(episode_data)
+    np.save('mcts_dataset_expert_eight.npy', np.array(dataset, dtype=object), allow_pickle=True)
+    np.save('mcts_dataset_alldata_eight.npy', np.array(all_data, dtype=object), allow_pickle=True)
 
 env.close()
-np.save('mcts_dataset.npy', np.array(
-    dataset, dtype=object), allow_pickle=True)
+np.save('mcts_dataset_expert_eight.npy', np.array(dataset, dtype=object), allow_pickle=True)
+np.save('mcts_dataset_alldata_eight.npy', np.array(all_data, dtype=object), allow_pickle=True)
 
 
 
