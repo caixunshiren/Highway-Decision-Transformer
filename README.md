@@ -10,3 +10,4 @@ Decision Transformer for offline single-agent autonomous highway driving
 ├── pipelines # all training, testing, preprocessing, and data gathering pipelines contained here
 │   ├── __init__.py
 ├── example-notebooks # scartch/example jupyternotebooks
+├── experiments # all training, testing, and demo experiment files for various models
