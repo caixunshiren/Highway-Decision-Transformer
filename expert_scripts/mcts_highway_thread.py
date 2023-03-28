@@ -23,9 +23,16 @@ def run_episode(dataset):
     (obs, info), done = env.reset(), False
 
     # Make agent
+    # agent_config = {
+    #     # "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
+    #     "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
+    #     "env_preprocessors": [{"method": "simplify"}],
+    #     "budget": 50,
+    #     "gamma": 0.7,
+    # }
+    
     agent_config = {
-        # "__class__": "<class 'rl_agents.agents.tree_search.deterministic.DeterministicPlannerAgent'>",
-        "__class__": "<class 'rl_agents.agents.tree_search.mcts.MCTSAgent'>",
+        "__class__": "",
         "env_preprocessors": [{"method": "simplify"}],
         "budget": 50,
         "gamma": 0.7,
@@ -45,7 +52,7 @@ def run_episode(dataset):
             episode_data.append([obs, action, reward])
             # if done or truncated:
             #     break
-            # env.render()
+            env.render()
         print('Episode: ', episode, ', Crashed?: ', info['crashed'])
         
         
@@ -57,5 +64,5 @@ def run_episode(dataset):
         dataset, dtype=object), allow_pickle=True)
 
 
-
+run_episode()
 

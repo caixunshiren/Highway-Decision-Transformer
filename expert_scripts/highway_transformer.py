@@ -14,6 +14,7 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.torch_layers import BaseFeaturesExtractor
 from stable_baselines3.common.vec_env import SubprocVecEnv
 import highway_env
+from gymnasium.wrappers import RecordVideo
 highway_env.register_highway_envs()
 
 # ==================================
@@ -301,7 +302,7 @@ env_kwargs = {
             "absolute": False
         },
         "policy_frequency": 2,
-        "duration": 40,
+        "duration": 120,
     }
 }
 
@@ -374,42 +375,58 @@ def compute_vehicles_attention(env, model):
 # ==================================
 
 if __name__ == "__main__":
-    train = True
+    train = False
     if train:
-        n_cpu = 4
+        n_cpu = 8
         policy_kwargs = dict(
             features_extractor_class=CustomExtractor,
             features_extractor_kwargs=attention_network_kwargs,
         )
         env = make_vec_env(make_configure_env, n_envs=n_cpu, seed=0,
                            vec_env_cls=SubprocVecEnv, env_kwargs=env_kwargs)
+        
+        #torch.cuda.is_available()
         model = PPO("MlpPolicy", env,
                     n_steps=512 // n_cpu,
                     batch_size=64,
                     learning_rate=2e-3,
                     policy_kwargs=policy_kwargs,
-                    verbose=2)
+                    verbose=2, device="cuda")
         # Train the agent
         model.learn(total_timesteps=200*1000)
         # Save the agent
         model.save("highway_attention_ppo/model_expert")
-
+        # C:\Users\mi_ke\Desktop\Highway-Decision-Transformer\highway_attention_ppo
     model = PPO.load("highway_attention_ppo/model_expert")
     env = make_configure_env(**env_kwargs)
+    
+    # env = RecordVideo(env, video_folder="run",
+    #                 episode_trigger=lambda e: True)  # record all episodes
     env.render()
     env.viewer.set_agent_display(functools.partial(
         display_vehicles_attention, env=env, model=model))
     
+    # env.unwrapped.set_record_video_wrapper(env
+    
+    all_data = []
     
     for episode in range(5):
         obs, info = env.reset()
         done = truncated = False
         total_reward = 0
+        episode_data = []
+        
         while not (done or truncated):
             action, _ = model.predict(obs)
             obs, reward, done, truncated, info = env.step(action)
             total_reward += reward
+            episode_data.append([obs, action, reward])
             env.render()
-            
-    print('Episode: ', episode, ', Crashed?: ',
-            info['crashed'], 'Total Reward:', total_reward)
+        env.close()     
+        all_data.append(episode_data)   
+        print('Episode: ', episode, ', Crashed?: ',
+                info['crashed'], 'Total Reward:', total_reward)
+        
+        np.save('ppo_transformer_pc.npy', np.array(all_data, dtype=object), allow_pickle=True)
+
+    env.close()
