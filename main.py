@@ -16,13 +16,18 @@ import numpy as np
 highway_env.register_highway_envs()
 
 
-# Make environment
-env = gym.make("highway-fast-v0", render_mode="rgb_array")
-env.config["duration"] = 60
+b = np.load('nocrashonly/mcts_dataset_expert.npy', allow_pickle=True)
 
-print(env.config)
+print(b.shape)
 
 
-(obs, info), done = env.reset(), False
+# # Make environment
+# env = gym.make("highway-fast-v0", render_mode="rgb_array")
+# env.config["duration"] = 60
 
-print(obs.shape, info)  
+# print(env.config)
+
+
+# (obs, info), done = env.reset(), False
+
+# print(obs.shape, info)  

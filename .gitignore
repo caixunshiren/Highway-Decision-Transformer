@@ -127,13 +127,15 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# local models
+*.pth
+
 # Pyre type checker
 .pyre/
 .idea
 .DS_Store
 data
 pipelines/.DS_Store
-.gitignore
 dataset_5000.npy
 highway_attention_ppo/model_fast.zip
 highway_attention_ppo/model_new.zip
@@ -165,7 +167,3 @@ mcts_dataset_expert_third.npy
 mcts_dataset_expert.npy
 mcts_dataset_seocond.npy
 mcts_dataset.npy
-run
-racetrack_ppo
-highway_dqn
-highway_attention_ppo
