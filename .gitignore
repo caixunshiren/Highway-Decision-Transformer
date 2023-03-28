@@ -165,3 +165,7 @@ mcts_dataset_expert_third.npy
 mcts_dataset_expert.npy
 mcts_dataset_seocond.npy
 mcts_dataset.npy
+run
+racetrack_ppo
+highway_dqn
+highway_attention_ppo
