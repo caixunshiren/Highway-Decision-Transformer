@@ -41,6 +41,7 @@ class DecisionTransformer(TrajectoryModel):
             max_length=None,
             max_ep_len=4096,
             action_tanh=True,
+            state_encoder=None,
             **kwargs
     ):
         super().__init__(state_dim, act_dim, max_length=max_length)
@@ -58,7 +59,13 @@ class DecisionTransformer(TrajectoryModel):
 
         self.embed_timestep = nn.Embedding(max_ep_len, hidden_size)
         self.embed_return = torch.nn.Linear(1, hidden_size)
-        self.embed_state = torch.nn.Linear(self.state_dim, hidden_size)
+        if state_encoder is None:
+            self.embed_state = torch.nn.Linear(self.state_dim, hidden_size)
+        else:
+            if state_encoder == 'mlp':
+                self.embed_state = MLP_encoder(state_dim, hidden_size, hidden_size)
+            else:
+                raise NotImplementedError("encoder not implemented")
         self.embed_action = torch.nn.Linear(self.act_dim, hidden_size)
 
         self.embed_ln = nn.LayerNorm(hidden_size)
@@ -157,3 +164,21 @@ class DecisionTransformer(TrajectoryModel):
             states, actions, None, returns_to_go, timesteps, attention_mask=attention_mask, **kwargs)
 
         return action_preds[0,-1]
+
+
+class MLP_encoder(torch.nn.Module):
+    def __init__(self, in_dim, out_dim, hidden_size=256, dropout=0.1):
+        super().__init__()
+        self.in_dim = in_dim
+        self.out_dim = out_dim
+        self.hidden_size = hidden_size
+
+        self.predict_state = nn.Sequential(
+            nn.Linear(in_dim, hidden_size),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden_size, out_dim),
+        )
+
+    def forward(self, x):
+        return self.predict_state(x)
