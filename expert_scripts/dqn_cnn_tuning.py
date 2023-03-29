@@ -199,16 +199,16 @@ if __name__ == '__main__':
         auto_save_callback = SaveOnBestTrainingRewardCallback(
             check_freq=5000, log_dir=log_dir, verbose=1)
         
-        with ProgressBarManager(1e6) as progress_callback:
+        with ProgressBarManager(2e6) as progress_callback:
             # This is equivalent to callback=CallbackList([progress_callback, auto_save_callback])
-            model.learn(total_timesteps=int(1e6), callback=[
+            model.learn(total_timesteps=int(2e6), callback=[
                         progress_callback, auto_save_callback, plotting_callback])
         
         
-        model.save("highway_cnn/model_1e7")
+        model.save("highway_cnn/model_2e6")
 
     # Record video
-    model = DQN.load("highway_cnn/model_1e7")
+    model = DQN.load("highway_cnn/model_2e6")
 
     env = test_env()
     env = RecordVideo(env, video_folder="highway_cnn/videos",
