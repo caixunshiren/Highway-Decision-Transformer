@@ -1,5 +1,5 @@
 # Highway-Decision-Transformer
-Decision Transformer for offline single-agent autonomous highway driving
+Decision Transformer for offline single-agent autonomous highway driving.
 
 ## Code Structure
 ```
@@ -15,8 +15,13 @@ Decision Transformer for offline single-agent autonomous highway driving
 ```
 
 ## Environment
-We used the [highway-env](https://highway-env.readthedocs.io/en/latest/ "highway-env")
+We used the open source [```highway-env```](https://highway-env.readthedocs.io/en/latest/ "highway-env") Python framework to simulate a highway environment. highway-env is built on top of the [OpenAI Gym toolkit](https://github.com/openai/gym), which is widely used in the field of reinforcement learning. ```highway-env``` provides a customizable and modular framework for designing experiments related to highway traffic, such as vehicle dynamics, traffic flow, and behavior modeling. It also includes various metrics and evaluation tools to assess the performance of different agents in the simulated environment. In our experiment, we will focus on a class of highway-env instance, consisting of 3 lanes and 20 other simulated cars. Our goal is to train an agent to drive safely in this scenario and maximize the default ```highway-env``` reward:
 
+<p align="center">
+$R(s,a) = a \frac{v - v_{min}}{v_{max} - v_{min}} - b \text{collision}$
+</p>
+
+where $v$, $v_{min}$, and $v_{max}$ are the current, minimum, and maximum speed of the ego-vehicle respectively and $a$ and $b$ are coefficients.
 
 ## Data Collection
 Three online RL methods were used to collect expert data: Proximal Policy Optimization (PPO), Deep Q-Network (DQN), and Monte Carlo Tree Search (MCTS). The scripts to collect data can be found in [```/expert_scripts```](/expert_scripts).
@@ -74,6 +79,7 @@ The DT model is defined in [```/modules/decision_transformer.py```](/modules/dec
 * We will try out recurrent layers or attention mechanisms (similar to PPO).
 
 9. LSTM
+
 LSTM is a type of recurrent neural network (RNN) that is classically used for sequence modelling problems. A common criticism of DTs is that they are no different than sequence modelling with RNNs. We plan on replacing DT blocks with LSTM blocks to verify whether this criticism holds.
 
 This model is yet to be created.
