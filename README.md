@@ -54,11 +54,9 @@ Below is a demonstration of the performance of the various experts. PPO and DQN 
 </p>
 
 ## Models
-1. Benchmark: Behaviour Cloning
+1. [Benchmark: Behaviour Cloning](/modules/behaviour_cloning.py)
 
 This is one of two benchmark models used by the original DT paper. By following an imitation-learning approach, we planned to develop an agent to mimic the behaviours of the expert on which it is trained on.
-
-We implemented this using a multi-layer perceptron. The model is defined in [```/modules/behaviour_cloning.py```](/modules/behaviour_cloning.py).
 
 3. Benchmark: Conservative Q-Learning
 
@@ -66,11 +64,11 @@ The is the state-of-the-art offline RL method. It uses a temporal difference lea
 
 The model is yet to be created.
 
-5. Baseline Decision Transformer
+5. [Baseline Decision Transformer](/modules/decision_transformer.py)
 
 Several experiments with various configurations of training datasets and parameters have been conducted in [```/experiments/```](/experiments).
 
-The DT model is defined in [```/modules/decision_transformer.py```](/modules/decision_transformer.py) which is based on GPT-2 defined in [```/modules/trajectory_gpt2.py```](/modules/trajectory_gpt2.py).
+The DT model is based on GPT-2 defined in [```/modules/trajectory_gpt2.py```](/modules/trajectory_gpt2.py).
 
 7. Decision Transformer with Different Encoders
 
