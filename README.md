@@ -28,8 +28,7 @@ Three online RL methods were used to collect expert data: Proximal Policy Optimi
 
 Below is a demonstration of the performance of the various experts. PPO and DQN are highly popular, state-of-the-art online RL methods while MCTS completely searches the game tree at each iteration and thus always finds the maximum reward/best move.
 
-### Expert Online RL Demo
-1. Proximal Policy Optimization (PPO)
+### [Proximal Policy Optimization (PPO)](/expert_scripts/ppo_highway.py)
 <p align="center">
 <img
      src="figures/PPO.gif"
@@ -37,7 +36,7 @@ Below is a demonstration of the performance of the various experts. PPO and DQN 
      >
 </p>
 
-2. Deep Q-Network (DQN)
+### [Deep Q-Network (DQN)](/expert_scripts/dqn_highway.py)
 <p align="center">
 <img
      src="figures/DQN.gif"
@@ -45,7 +44,7 @@ Below is a demonstration of the performance of the various experts. PPO and DQN 
      >
 </p>
 
-3. Monte Carlo Tree Search (MCTS)
+### [Monte Carlo Tree Search (MCTS)](/expert_scripts/mtcs_highway.py)
 <p align="center">
 <img
      src="figures/MCTS.gif"
@@ -54,29 +53,29 @@ Below is a demonstration of the performance of the various experts. PPO and DQN 
 </p>
 
 ## Models
-1. [Benchmark: Behaviour Cloning](/modules/behaviour_cloning.py)
+### [Benchmark: Behaviour Cloning](/modules/behaviour_cloning.py)
 
 This is one of two benchmark models used by the original DT paper. By following an imitation-learning approach, we planned to develop an agent to mimic the behaviours of the expert on which it is trained on.
 
-3. Benchmark: Conservative Q-Learning
+### Benchmark: Conservative Q-Learning
 
 The is the state-of-the-art offline RL method. It uses a temporal difference learning approach.
 
 The model is yet to be created.
 
-5. [Baseline Decision Transformer](/modules/decision_transformer.py)
+### [Baseline Decision Transformer](/modules/decision_transformer.py)
 
 Several experiments with various configurations of training datasets and parameters have been conducted in [```/experiments/```](/experiments).
 
 The DT model is based on GPT-2 defined in [```/modules/trajectory_gpt2.py```](/modules/trajectory_gpt2.py).
 
-7. Decision Transformer with Different Encoders
+### Decision Transformer with Different Encoders
 
 * Current input is a flattened 5x5 array of the information about the nearest 5 cars.
 * We are currently using an MLP for input.
 * We will try out recurrent layers or attention mechanisms (similar to PPO).
 
-9. LSTM
+### LSTM
 
 LSTM is a type of recurrent neural network (RNN) that is classically used for sequence modelling problems. A common criticism of DTs is that they are no different than sequence modelling with RNNs. We plan on replacing DT blocks with LSTM blocks to verify whether this criticism holds.
 
