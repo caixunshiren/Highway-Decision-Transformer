@@ -128,7 +128,7 @@ venv.bak/
 dmypy.json
 
 # local models
-*.pth
+
 
 # Pyre type checker
 .pyre/
