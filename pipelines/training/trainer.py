@@ -20,7 +20,6 @@ import torch
 
 import time
 
-
 class Trainer:
 
     def __init__(self, model, optimizer, batch_size, get_batch, loss_fn, scheduler=None, eval_fns=None, err_fn=None):
