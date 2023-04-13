@@ -59,8 +59,9 @@ def train(config, sequences, continue_training=False):
     scale = np.mean([len(path['states']) for path in sequences])  # scale for rtg
 
     # train-eval split
-    eval_sequences = sequences[:500]
-    sequences = sequences[500:]
+    eval_size = config.get('eval_size', 500)
+    eval_sequences = sequences[:eval_size]
+    sequences = sequences[eval_size:]
 
     # save all sequence information into separate lists
     states, traj_lens, returns = [], [], []
@@ -74,10 +75,15 @@ def train(config, sequences, continue_training=False):
     traj_lens, returns = np.array(traj_lens), np.array(returns)
 
     # used for input normalization
+    input_type = config.get('input_type', 'coord')
     states = np.concatenate(states, axis=0)
-    state_mean, state_std = np.mean(states, axis=0), np.std(states, axis=0) + 1e-6
-    state_mean[[0,5,10,15,20]] = 0
-    state_std[[0,5,10,15,20]] = 1
+    if input_type == 'grayscale':
+        # no normalization needed for cnn
+        state_mean, state_std = np.array(50), np.array(100)
+    else:
+        state_mean, state_std = np.mean(states, axis=0), np.std(states, axis=0) + 1e-6
+        state_mean[[0,5,10,15,20]] = 0
+        state_std[[0,5,10,15,20]] = 1
     num_timesteps = sum(traj_lens)
 
     print('=' * 50)
@@ -112,8 +118,11 @@ def train(config, sequences, continue_training=False):
             np.arange(num_trajectories),
             size=batch_size,
             replace=True,
-            p=p_sample,  # reweights so we sample according to timesteps
+            # p=p_sample,  # reweights so we sample according to timesteps
         ) if not eval else np.arange(len(eval_sequences))
+
+        if eval:
+            batch_size = len(eval_sequences)
 
         s, a, r, d, rtg, timesteps, mask = [], [], [], [], [], [], []
         for i in range(batch_size):
@@ -243,6 +252,7 @@ def train(config, sequences, continue_training=False):
         n_layer=config['n_layer'],
         n_head=config['n_head'],
         state_encoder=config.get('state_encoder', None),
+        in_shape=config.get('in_shape', None),
         n_inner=4 * config['embed_dim'],
         activation_function=config['activation_function'],
         n_positions=1024,
