@@ -1,6 +1,8 @@
 """
 Script for Experiment 1: MLP encoder Decision Transformer on categorical action space
 """
+import sys
+sys.path.append('/Users/jwoo/Documents/GitHub/Highway-Decision-Transformer')
 
 import numpy as np
 import torch
@@ -11,16 +13,16 @@ from pipelines.train_bc import train
 print(torch.version.cuda)
 print('cuda availability:', torch.cuda.is_available())
 
-#checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer.pth')
+checkpoint = torch.load('saved_models/checkpoint-BC-expert-mcts.pth')
 
 config = {
     'device': 'cpu',#'cuda',
     'mode': 'normal',
-    'experiment_name': 'mlp-decision-transformer-expert-mcts',
+    'experiment_name': 'BC-expert-mcts',
     'group_name': 'ECE324',
     'log_to_wandb': False,
     'max_iters': 10,
-    'num_steps_per_iter': 1000,#10000,
+    'num_steps_per_iter': 10000,
     'context_length': 30,
     'batch_size': 32,
     'num_eval_episodes': 50,
@@ -30,8 +32,8 @@ config = {
     'n_head': 4,
     'activation_function': 'relu',
     'dropout': 0.1,
-    'model': None,#checkpoint['model'],
-    'optimizer': None,#checkpoint['optimizer'],
+    'model': checkpoint['model'],
+    'optimizer': checkpoint['optimizer'],
     'learning_rate': 1e-4,
     'warmup_steps': 1000,#10000,
     'weight_decay': 1e-4,
@@ -81,7 +83,7 @@ A = np.load('./data/mcts_dataset_expert.npy', allow_pickle=True)
 sequences = [load_sequence(row) for row in A]
 
 # Train model
-model, optimizer, scheduler = train(config, sequences, continue_training=False)
+model, optimizer, scheduler = train(config, sequences, continue_training=True)
 
 # save model as checkpoint
 checkpoint = {

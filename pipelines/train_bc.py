@@ -5,7 +5,7 @@ import wandb
 
 from pipelines.evaluation.evaluate_episodes import evaluate_episode_rtg
 from pipelines.training.bc_seq_trainer import SequenceTrainer
-from modules.behavioural_cloning import BehaviouralCloning
+from modules.behaviour_cloning import BehaviourCloning
 
 def discount_cumsum(x, gamma):
     """
@@ -169,7 +169,7 @@ def train(config, sequences, continue_training=False):
     dropout = 0.1
     max_length =1
 
-    model = BehaviouralCloning(
+    model = BehaviourCloning(
         state_dim = state_dim, 
         act_dim = act_dim, 
         hidden_size = config['embed_dim'], 

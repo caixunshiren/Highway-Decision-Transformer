@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/Users/jwoo/Documents/GitHub/Highway-Decision-Transformer')
+
 import gymnasium as gym
 import highway_env
 from gymnasium.wrappers import RecordVideo
@@ -6,6 +9,7 @@ import numpy as np
 import torch
 from modules.decision_transformer import DecisionTransformer
 import pickle
+from modules.behaviour_cloning import BehaviourCloning
 
 
 # load training sequences
@@ -23,11 +27,10 @@ def load_sequence(row):
                     rewards: np.array of shape (T, )
                     dones: np.array of shape (T, )
     '''
-    crashed = row[-1]
     states = []
     actions = []
     rewards = []
-    for state, action, reward in row[:-1]:
+    for state, action, reward in row:
         # flatten state for mlp encoder
         states.append(state.reshape(-1))
         one_hot_action = np.zeros(5)
@@ -36,38 +39,40 @@ def load_sequence(row):
         rewards.append(reward)
     states = np.array(states)
     actions = np.array(actions)
-    rewards = np.array(rewards) if not crashed else -np.array(rewards)
+    rewards = np.array(rewards)
     dones = np.zeros_like(rewards)
     dones[-1] = 1
     sequence = {'states': states, 'actions': actions, 'rewards': rewards, 'dones': dones}
     return sequence
+
 # Load sequences
-A = np.load('../data/dataset_5000.npy', allow_pickle=True)
-sequences = [load_sequence(row) for row in A if row[-1] is False]
+A = np.load('./data/mcts_dataset_expert.npy', allow_pickle=True)
+sequences = [load_sequence(row) for row in A]
 
 # load model
-checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer.pth', map_location='cpu', pickle_module=pickle)
+checkpoint = torch.load('saved_models/checkpoint-BC-expert-mcts.pth', map_location='cpu', pickle_module=pickle)
+
 config = {
     'device': 'cpu',#'cuda',
     'mode': 'normal',
-    'experiment_name': 'mlp-decision-transformer',
+    'experiment_name': 'BC-expert-mcts',
     'group_name': 'ECE324',
     'log_to_wandb': False,
-    'max_iters': 100,
-    'num_steps_per_iter': 10000,#10000,
+    'max_iters': 10,
+    'num_steps_per_iter': 1000,#10000,
     'context_length': 30,
     'batch_size': 32,
     'num_eval_episodes': 50,
     'pct_traj': 1.0,
     'n_layer': 3,
-    'embed_dim': 128,
+    'embed_dim': 256,
     'n_head': 4,
     'activation_function': 'relu',
     'dropout': 0.1,
     'model': checkpoint['model'],
-    'optimizer': None,
+    'optimizer': checkpoint['optimizer'],
     'learning_rate': 1e-4,
-    'warmup_steps': 10000,#10000,
+    'warmup_steps': 1000,#10000,
     'weight_decay': 1e-4,
     'env_targets': [],#[0.5, 1.0, 5.0, 10],
     'action_tanh': False, #True,
@@ -85,15 +90,13 @@ env_kwargs = {
         "vehicles_count": 15,
         "observation": {
             "type": "Kinematics",
-            "vehicles_count": 10,
+            "vehicles_count": 5,
             "features": [
                 "presence",
                 "x",
                 "y",
                 "vx",
                 "vy",
-                "cos_h",
-                "sin_h"
             ],
             "absolute": False
         },
@@ -116,27 +119,20 @@ print(env.config)
 
 
 (state, info), done = env.reset(), False
-state_dim = 70
+state_dim = 25
 act_dim = 5
 
-
-model = DecisionTransformer(
-        state_dim=state_dim,
-        act_dim=act_dim,
-        max_length=config['context_length'],
-        max_ep_len=80,
-        action_tanh=config['action_tanh'],
-        hidden_size=config['embed_dim'],
-        n_layer=config['n_layer'],
-        n_head=config['n_head'],
-        n_inner=4 * config['embed_dim'],
-        activation_function=config['activation_function'],
-        n_positions=1024,
-        resid_pdrop=config['dropout'],
-        attn_pdrop=config['dropout'],
-    )
+model = BehaviourCloning(
+        state_dim = state_dim, 
+        act_dim = act_dim, 
+        hidden_size = config['embed_dim'], 
+        n_layer = config['n_layer'], 
+        dropout = config['dropout'], 
+        max_length = config['context_length']
+        )
 
 model.load_state_dict(config['model'])
+
 
 # get some useful statistics from training set
 max_ep_len = max([len(path['states']) for path in sequences])  # take it as the longest trajectory
@@ -200,8 +196,6 @@ for episodes in range(10):
             (states.to(dtype=torch.float32) - state_mean) / state_std,
             actions.to(dtype=torch.float32),
             rewards.to(dtype=torch.float32),
-            target_return.to(dtype=torch.float32),
-            timesteps.to(dtype=torch.long),
         )
         actions[-1] = action
         action = action.detach().cpu().numpy()

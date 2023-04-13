@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from modules.model import TrajectoryModel
 
-class BehaviouralCloning(TrajectoryModel):
+class BehaviourCloning(TrajectoryModel):
     #Fully connected MLP with n_layer hidden layers
     def __init__(self, state_dim, act_dim, hidden_size, n_layer, dropout=0.1, max_length=1, **kwargs):
         super().__init__(state_dim, act_dim)
@@ -33,7 +33,6 @@ class BehaviouralCloning(TrajectoryModel):
         actions = self.model(states).reshape(states.shape[0], 1, self.act_dim)
 
         return None, actions, None
-
     def get_action(self, states, actions, rewards, **kwargs):
         states = states.reshape(1, -1, self.state_dim)
         if states.shape[1] < self.max_length:
@@ -41,5 +40,5 @@ class BehaviouralCloning(TrajectoryModel):
                 [torch.zeros((1, self.max_length-states.shape[1], self.state_dim),
                              dtype=torch.float32, device=states.device), states], dim=1)
         states = states.to(dtype=torch.float32)
-        _, actions, _ = self.forward(states, None, None, **kwargs)
+        _, actions, _ = self.forward(states, None, None, None, None, **kwargs)
         return actions[0,-1]

@@ -1,7 +1,8 @@
 """
 Script for Experiment 1: MLP encoder Decision Transformer on categorical action space
 """
-
+import sys
+sys.path.append('/Users/jwoo/Documents/GitHub/Highway-Decision-Transformer')
 import numpy as np
 import torch
 import gymnasium as gym
@@ -14,7 +15,7 @@ from pipelines.loading_utils import load_sequence, get_action_count
 print(torch.version.cuda)
 print('cuda availability:', torch.cuda.is_available())
 
-checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer-expert-mcts.pth', map_location=torch.device('cpu'))
+# checkpoint = torch.load('saved_models/checkpoint-mlp-decision-transformer-expert-mcts.pth', map_location=torch.device('cpu'))
 
 # set up environment
 env = gym.make("highway-fast-v0", render_mode="rgb_array")
@@ -24,7 +25,8 @@ env.config["duration"] = 59
 sequences = []
 names = ['', '_second', '_third', '_four', '_five', '_six', '_seven', '_eight', '_nine']
 for n in names:
-    fname = f'../data/mcts-wo-crashes/mcts_dataset_expert{n}.npy'
+    # fname = f'../data/mcts-wo-crashes/mcts_dataset_expert{n}.npy'
+    fname = f'./data/mcts_dataset_expert.npy'
     A = np.load(fname, allow_pickle=True)
     sequence = [load_sequence(row) for row in A]
     sequences += sequence
