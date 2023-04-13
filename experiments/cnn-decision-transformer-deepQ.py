@@ -8,26 +8,37 @@ import gymnasium as gym
 import highway_env
 
 from pipelines.train_dt import train
-from pipelines.loading_utils import load_sequence, get_action_count
+from pipelines.loading_utils import load_sequence, get_action_count, grayscale_train_env
 
 # check if cuda is available
 print(torch.version.cuda)
 print('cuda availability:', torch.cuda.is_available())
 
-checkpoint = torch.load('saved_models/best-25.71-checkpoint-mlp-decision-transformer-expert-mcts-distilled-8.pth', map_location=torch.device('cpu'))
+#checkpoint = torch.load('saved_models/best-25.71-checkpoint-mlp-decision-transformer-expert-mcts-distilled-8.pth', map_location=torch.device('cpu'))
 
 # set up environment
-env = gym.make("highway-fast-v0", render_mode="rgb_array")
-env.config["duration"] = 59
+env = grayscale_train_env()
 
 # Load sequences
 sequences = []
-names = ['', '_second', '_third', '_four', '_five', '_six', '_seven', '_eight', '_nine']
-for n in names:
-    fname = f'../data/mcts-wo-crashes/mcts_dataset_expert{n}.npy'
-    A = np.load(fname, allow_pickle=True)
-    sequence = [load_sequence(row) for row in A]
-    sequences += sequence
+
+fname = '../data/deep-q-grayscale/expert_data.npz'
+A = np.load(fname, allow_pickle=True)
+expert_actions = A['expert_actions']
+expert_observations = A['expert_observations']
+print(expert_actions)
+print(expert_actions.shape)
+print(expert_observations)
+print(expert_observations.shape)
+
+def make_sequence(obs, actions, rewards):
+    dones = np.zeros_like(rewards)
+    dones[-1] = 1
+    sequence = {'states': obs, 'actions': actions, 'rewards': rewards, 'dones': dones}
+    return sequence
+
+exit()
+
 print(len(sequences))
 # sequence statistics
 action_counts = get_action_count(sequences)
@@ -38,7 +49,7 @@ config = {
     'env': env,
     'eval_render': True,
     'mode': 'normal',
-    'experiment_name': 'mlp-decision-transformer-expert-mcts-distilled-11',
+    'experiment_name': 'cnn-decision-transformer-deepQ',
     'group_name': 'ECE324',
     'log_to_wandb': False,
     'max_iters': 1000,

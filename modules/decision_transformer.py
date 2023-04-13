@@ -177,8 +177,48 @@ class MLP_encoder(torch.nn.Module):
             nn.Linear(in_dim, hidden_size),
             nn.ReLU(),
             nn.Dropout(dropout),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Dropout(dropout),
             nn.Linear(hidden_size, out_dim),
         )
 
     def forward(self, x):
         return self.predict_state(x)
+
+
+class CNN_encoder(torch.nn.Module):
+    def __init__(self, in_shape, out_dim, dropout=0.1):
+        super().__init__()
+        """
+        take input as 1D vector and reshape to in_shape image shape
+        e.g. in_shape = (4, 128, 64) for 4-stacked grayscale images
+        output is a 1D vector of length out_dim
+        """
+        self.in_shape = in_shape
+        self.out_dim = out_dim
+        channel, width, height = in_shape
+
+        self.cnn = nn.Sequential(
+            nn.Conv2d(channel, 32, kernel_size=8, stride=4, padding=0),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
+            nn.ReLU(),
+            nn.Flatten(),
+        )
+        dummy_cnn_output = self.cnn(torch.zeros(1, *in_shape))
+        print("CNN output shape: ", dummy_cnn_output.shape, "linearly transformed to", out_dim)
+        self.linear = nn.Linear(dummy_cnn_output.shape[1], out_dim)
+
+    def forward(self, x):
+        x = x.reshape(-1, *self.in_shape)
+        x = self.cnn(x)
+        x = self.linear(x)
+        return x
+
+
+

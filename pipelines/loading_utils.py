@@ -1,4 +1,6 @@
 import numpy as np
+import gymnasium as gym
+import highway_env
 
 
 def load_sequence(row):
@@ -73,3 +75,27 @@ def get_action_count(sequences):
     for sequence in sequences:
         actions += np.sum(sequence['actions'], axis=0)
     return actions
+
+
+def grayscale_train_env():
+    env = gym.make('highway-v0')
+    env.configure({
+        "observation": {
+            "type": "GrayscaleObservation",
+            "observation_shape": (128, 64),
+            "stack_size": 4,
+            "weights": [0.2989, 0.5870, 0.1140],  # weights for RGB conversion
+            "scaling": 1.75,
+        },
+        "policy_frequency": 2,
+        "duration": 70, # 60
+
+        # Hard Scenario Using Settings below
+        # "vehicles_density": 1.2,
+        # "vehicles_count": 25,
+        "high_speed_reward": 0.5,
+        "collision_reward": -2.5,
+        "lane_change_reward": -0.05,
+    })
+    env.reset()
+    return env

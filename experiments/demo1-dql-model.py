@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from modules.decision_transformer import DecisionTransformer
 import pickle
+from pipelines.evaluation.evaluate_episodes import evaluate_episode_rtg, evaluate_episode_rtg_nonstop
 
 
 # load training sequences
@@ -98,7 +99,7 @@ env_kwargs = {
             "absolute": False
         },
         "policy_frequency": 2,
-        "duration": 39,
+        "duration": 30,
     }
 }
 
@@ -163,78 +164,25 @@ num_timesteps = sum(traj_lens)
 
 highway_env.register_highway_envs()
 
-
-model.eval()
-model.to(device=config['device'])
-
-state_mean = torch.from_numpy(state_mean).to(device=config['device'])
-state_std = torch.from_numpy(state_std).to(device=config['device'])
-
-
-# we keep all the histories on the device
-# note that the latest action and reward will be "padding"
-states = torch.from_numpy(state).reshape(1, state_dim).to(device=config['device'], dtype=torch.float32)
-
-
-actions = torch.zeros((0, act_dim), device=config['device'], dtype=torch.float32)
-rewards = torch.zeros(0, device=config['device'], dtype=torch.float32)
-
 target_return = 0.9
+n_evals = 10
 
-ep_return = target_return
-target_return = torch.tensor(ep_return, device=config['device'], dtype=torch.float32).reshape(1, 1)
-timesteps = torch.tensor(0, device=config['device'], dtype=torch.long).reshape(1, 1)
+ret = []
 
-sim_states = []
-for episodes in range(10):
-    state, info = env.reset()
-    done = truncated = False
-    episode_return, episode_length = 0, 0
-    t = 0
-    while not (done or truncated):
-
-        # add padding
-        actions = torch.cat([actions, torch.zeros((1, act_dim), device=config['device'])], dim=0)
-        rewards = torch.cat([rewards, torch.zeros(1, device=config['device'])])
-
-        action = model.get_action(
-            (states.to(dtype=torch.float32) - state_mean) / state_std,
-            actions.to(dtype=torch.float32),
-            rewards.to(dtype=torch.float32),
-            target_return.to(dtype=torch.float32),
-            timesteps.to(dtype=torch.long),
-        )
-        actions[-1] = action
-        action = action.detach().cpu().numpy()
-
-        print(np.argmax(action), action, t)
-
-        optimal_action = np.argmax(action)
-
-        state, reward, done, truncated, info = env.step(optimal_action)
-
-        cur_state = torch.from_numpy(state).to(device=config['device']).reshape(1, state_dim)
-        states = torch.cat([states, cur_state], dim=0)
-        rewards[-1] = reward
-
-        env.render()
-
-
-        pred_return = target_return[0, -1]
-
-        target_return = torch.cat(
-            [target_return, pred_return.reshape(1, 1)], dim=1)
-
-        timesteps = torch.cat(
-            [timesteps,
-             torch.ones((1, 1), device=config['device'], dtype=torch.long) * (t + 1)], dim=1)
-
-        episode_return += reward
-        episode_length += 1
-
-        t+=1
-
-        if done:
-            break
-
-env.close()
+# run eval episodes
+for i in range(n_evals):
+    r,_,_ = evaluate_episode_rtg_nonstop(
+        env,
+        state_dim,
+        act_dim,
+        model,
+        max_ep_len=max_ep_len,
+        state_mean=state_mean,
+        state_std=state_std,
+        device='cpu',
+        target_return=target_return,
+        render=True,
+        sample=False,
+    )
+    ret.append(r)
+print(np.mean(ret))

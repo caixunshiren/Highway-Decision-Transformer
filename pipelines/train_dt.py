@@ -58,6 +58,10 @@ def train(config, sequences, continue_training=False):
     max_ep_len = max([len(path['states']) for path in sequences])  # take it as the longest trajectory
     scale = np.mean([len(path['states']) for path in sequences])  # scale for rtg
 
+    # train-eval split
+    eval_sequences = sequences[:500]
+    sequences = sequences[500:]
+
     # save all sequence information into separate lists
     states, traj_lens, returns = [], [], []
     for path in sequences:
@@ -103,17 +107,17 @@ def train(config, sequences, continue_training=False):
     # used to reweight sampling so we sample according to timesteps instead of trajectories
     p_sample = traj_lens[sorted_inds] / sum(traj_lens[sorted_inds])
 
-    def get_batch(batch_size=256, max_len=K):
+    def get_batch(batch_size=256, max_len=K, eval=False):
         batch_inds = np.random.choice(
             np.arange(num_trajectories),
             size=batch_size,
             replace=True,
             p=p_sample,  # reweights so we sample according to timesteps
-        )
+        ) if not eval else np.arange(len(eval_sequences))
 
         s, a, r, d, rtg, timesteps, mask = [], [], [], [], [], [], []
         for i in range(batch_size):
-            traj = sequences[int(sorted_inds[batch_inds[i]])]
+            traj = sequences[int(sorted_inds[batch_inds[i]])] if not eval else eval_sequences[batch_inds[i]]
             si = random.randint(1, traj['rewards'].shape[0] - 1)
 
             # get sequences from dataset
@@ -143,13 +147,6 @@ def train(config, sequences, continue_training=False):
             timesteps[-1] = np.concatenate([np.zeros((1, max_len - tlen)), timesteps[-1]], axis=1)
             mask.append(np.concatenate([np.zeros((1, max_len - tlen)), np.ones((1, tlen))], axis=1))
 
-            print("index:", si)
-            print(s[-1].shape, s[-1])
-            print(a[-1])
-            print(r[-1])
-            print(timesteps[-1])
-            print(mask[-1])
-
         s = torch.from_numpy(np.concatenate(s, axis=0)).to(dtype=torch.float32, device=device)
         a = torch.from_numpy(np.concatenate(a, axis=0)).to(dtype=torch.float32, device=device)
         r = torch.from_numpy(np.concatenate(r, axis=0)).to(dtype=torch.float32, device=device)
@@ -157,15 +154,6 @@ def train(config, sequences, continue_training=False):
         rtg = torch.from_numpy(np.concatenate(rtg, axis=0)).to(dtype=torch.float32, device=device)
         timesteps = torch.from_numpy(np.concatenate(timesteps, axis=0)).to(dtype=torch.long, device=device)
         mask = torch.from_numpy(np.concatenate(mask, axis=0)).to(device=device)
-
-        #print(a.shape)
-        #print(a)
-        #print(s.shape)
-        #print(s[0,0])
-        # print(r.shape)
-        # print(r)
-        #print(timesteps.shape)
-        #print(timesteps)
 
         return s, a, r, d, rtg, timesteps, mask
     # def get_batch(batch_size=256, max_len=K):

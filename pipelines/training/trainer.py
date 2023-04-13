@@ -36,9 +36,10 @@ class Trainer:
 
         self.start_time = time.time()
 
-    def train_iteration(self, num_steps, iter_num=0, print_logs=False):
+    def train_iteration(self, num_steps, iter_num=0, print_logs=False, num_steps_eval=10):
 
         train_losses = []
+        eval_losses = []
         logs = dict()
 
         train_start = time.time()
@@ -55,6 +56,10 @@ class Trainer:
         eval_start = time.time()
 
         self.model.eval()
+        for _ in range(num_steps_eval):
+            eval_loss = self.eval_step()
+            eval_losses.append(eval_loss)
+
         for eval_fn in self.eval_fns:
             outputs = eval_fn(self.model)
             for k, v in outputs.items():
@@ -64,6 +69,8 @@ class Trainer:
         logs['time/evaluation'] = time.time() - eval_start
         logs['training/train_loss_mean'] = np.mean(train_losses)
         logs['training/train_loss_std'] = np.std(train_losses)
+        logs['eval/eval_loss_mean'] = np.mean(eval_losses)
+        logs['eval/eval_loss_std'] = np.std(eval_losses)
 
         for k in self.diagnostics:
             logs[k] = self.diagnostics[k]
