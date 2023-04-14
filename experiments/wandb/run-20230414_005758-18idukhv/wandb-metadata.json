@@ -1,0 +1,24 @@
+{
+    "root": "/Users/jvjv/Github/Highway-Decision-Transformer",
+    "program": "/Users/jvjv/Github/Highway-Decision-Transformer/experiments/cnn-decision-transformer-deepQ.py",
+    "git": {
+        "remote": "git@github.com:caixunshiren/Highway-Decision-Transformer.git",
+        "commit": "dbef245067230b8b8a737e85354dbaa53f7a08aa"
+    },
+    "email": "caixunshiren@gmail.com",
+    "startedAt": "2023-04-14T00:57:59.447145",
+    "host": "Jacks-MacBook-Pro.local",
+    "username": "jvjv",
+    "executable": "/Users/jvjv/Github/Highway-Decision-Transformer/venv/bin/Python",
+    "os": "macOS-12.2.1-x86_64-i386-64bit",
+    "python": "3.8.9",
+    "cpu_count": 10,
+    "args": [],
+    "state": "failed",
+    "jobType": null,
+    "mode": "run",
+    "name": "cnn-decision-transformer-deepQ",
+    "project": "highway-decision-transformer",
+    "heartbeatAt": "2023-04-14T00:58:01.105063",
+    "exitcode": 1
+}

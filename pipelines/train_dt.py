@@ -290,8 +290,8 @@ def train(config, sequences, continue_training=False):
         wandb.init(
             name=config["experiment_name"],
             group=config["group_name"],
-            project='decision-transformer',
-            config=config
+            project='highway-decision-transformer',
+            config={}#config
         )
         # wandb.watch(model)  # wandb has some bug
 
