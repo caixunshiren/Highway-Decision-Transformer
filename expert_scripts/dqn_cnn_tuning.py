@@ -10,6 +10,7 @@ from stable_baselines3.common.callbacks import BaseCallback
 import os
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 
 
 import highway_env
@@ -33,7 +34,7 @@ class PlottingCallback(BaseCallback):
         x, y = ts2xy(load_results(log_dir), 'timesteps')
         if self._plot is None:  # make the plot
             plt.ion()
-            fig = plt.figure(figsize=(6, 3))
+            fig = plt.figure(figsize=(12, 8))
             ax = fig.add_subplot(111)
             line, = ax.plot(x, y)
             self._plot = (line, ax, fig)
@@ -130,7 +131,7 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 
 
 def train_env():
-    env = gym.make('highway-fast-v0', render_mode='rgb_array')
+    env = gym.make('highway-v0')
     env.configure({
         "observation": {
             "type": "GrayscaleObservation",
@@ -139,8 +140,15 @@ def train_env():
             "weights": [0.2989, 0.5870, 0.1140],  # weights for RGB conversion
             "scaling": 1.75,
         },
-        "policy_frequency": 1,
-        "duration": 60
+        "policy_frequency": 2,
+        "duration": 70, # 60
+        
+        # Hard Scenario Using Settings below
+        # "vehicles_density": 1.2,
+        # "vehicles_count": 25,
+        "high_speed_reward": 0.5,
+        "collision_reward": -2.5,
+        "lane_change_reward": -0.05,
     })
     env.reset()
     return env
@@ -148,20 +156,25 @@ def train_env():
 
 def test_env():
     env = train_env()
-    env.configure({"policy_frequency": 1, "duration": 60,
-                  "show_trajectories": True, "simulation_frequency": 15})
+    # env.configure({
+    #             # "show_trajectories": True, 
+    #             "simulation_frequency": 5})
+    #             # "policy_frequency": 2})
     env.reset()
     return env
 
 
 if __name__ == '__main__':
     # Train
-    train = True
-    n_cpu = 7
+    train = False
+    n_cpu = 6
     
      # Create log dir
     log_dir = "highway_cnn/logs/"
     os.makedirs(log_dir, exist_ok=True)
+    
+    device  = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(device)
 
     if train:
 
@@ -182,48 +195,86 @@ if __name__ == '__main__':
         #             verbose=1)
         
         model = DQN('CnnPolicy', env,
-                    learning_rate=1e-4,
-                    buffer_size=50000,
-                    learning_starts=1000,
-                    target_update_interval=500,
-                    batch_size=32,
-                    gamma=0.8,
-                    train_freq=4,
+                    learning_rate=5e-4,
+                    buffer_size=30000,
+                    learning_starts=2000,
+                    batch_size=64,
+                    gamma=0.85,
+                    train_freq=1,
                     gradient_steps=1,
-                    exploration_fraction=0.4,
-                    exploration_final_eps= 0.01,
-                    verbose=0)
+                    target_update_interval=50,
+                    exploration_fraction=0.6,
+                    exploration_final_eps=0.01,
+                    verbose=0,device = device, tensorboard_log=log_dir)
         
-        plotting_callback = PlottingCallback()
+        # plotting_callback = PlottingCallback()
         
         auto_save_callback = SaveOnBestTrainingRewardCallback(
-            check_freq=5000, log_dir=log_dir, verbose=1)
+            check_freq=200, log_dir=log_dir, verbose=1)
+    
         
-        with ProgressBarManager(2e6) as progress_callback:
+        with ProgressBarManager(4e5) as progress_callback:
             # This is equivalent to callback=CallbackList([progress_callback, auto_save_callback])
-            model.learn(total_timesteps=int(2e6), callback=[
-                        progress_callback, auto_save_callback, plotting_callback])
+            model.learn(total_timesteps=int(4e5), callback=[
+                        progress_callback, auto_save_callback])
         
         
-        model.save("highway_cnn/model_2e6")
+        model.save("highway_cnn/4e5_0413")
 
+    # Best mode：model with policy_frequency=2, duration=60, show_trajectories=True, simulation_frequency=15
     # Record video
-    model = DQN.load("highway_cnn/model_2e6")
+    # model = DQN.load("highway_cnn/best_model0331")
+    # model = DQN.load("highway_cnn/best_model4e5")
+    model = DQN.load("highway_cnn/best_model_notfast")
 
     env = test_env()
-    env = RecordVideo(env, video_folder="highway_cnn/videos",
-                      episode_trigger=lambda e: True, name_prefix="dqn-agent")  # record all episodes
+    print(env.config)
+    # env = RecordVideo(env, video_folder="highway_cnn/videos",
+    #                   episode_trigger=lambda e: True, name_prefix="dqn-agent")  # record all episodes
 
-    # Provide the video recorder to the wrapped environment
-    # so it can send it intermediate simulation frames.
-    env.unwrapped.set_record_video_wrapper(env)
+    # # Provide the video recorder to the wrapped environment
+    # # so it can send it intermediate simulation frames.
+    # env.unwrapped.set_record_video_wrapper(env)
+    
+    # num_interactions = int(1e4)
+    # if isinstance(env.action_space, gym.spaces.Box):
+    #     expert_observations = np.empty((num_interactions,) + env.observation_space.shape)
+    #     expert_actions = np.empty((num_interactions,) + (env.action_space.shape[0],))
+    #     expert_rewards = np.empty((num_interactions,))
+    #     expert_done = np.empty((num_interactions,))
+
+    # else:
+    #     expert_observations = np.empty((num_interactions,) + env.observation_space.shape)
+    #     expert_actions = np.empty((num_interactions,) + env.action_space.shape)
+    #     expert_rewards = np.empty((num_interactions,))
+    #     expert_done = np.empty((num_interactions,))
+    #     obs, info = env.reset()
+
+    # for i in tqdm(range(num_interactions)):
+    #     action, _ = model.predict(obs, deterministic=True)
+    #     expert_observations[i] = obs
+    #     expert_actions[i] = action
+    #     obs, reward, done, truncated, info = env.step(
+    #         action)
+    #     expert_rewards[i] = reward
+    #     expert_done[i] = (done or truncated)
+    #     if (done or truncated):
+    #         obs, info = env.reset()
+
+    # np.savez_compressed(
+    #     "expert_data_with_reward_done_1e4",
+    #     expert_actions=expert_actions,
+    #     expert_observations=expert_observations,
+    #     expert_rewards=expert_rewards,
+    #     expert_done=expert_done
+    # )
 
     for episode in range(10):
         # print(env.reset().shape)
         obs, info = env.reset()
         done = truncated = False
         while not (done or truncated):
-            action, _ = model.predict(obs)
+            action, _ = model.predict(obs,deterministic=True)
             # print(action)
             obs, reward, done, truncated, info = env.step(action)
             env.render()
