@@ -42,6 +42,7 @@ class DecisionTransformer(TrajectoryModel):
             max_ep_len=4096,
             action_tanh=True,
             state_encoder=None,
+            in_shape=None,
             **kwargs
     ):
         super().__init__(state_dim, act_dim, max_length=max_length)
@@ -64,6 +65,8 @@ class DecisionTransformer(TrajectoryModel):
         else:
             if state_encoder == 'mlp':
                 self.embed_state = MLP_encoder(state_dim, hidden_size, hidden_size)
+            elif state_encoder == 'cnn':
+                self.embed_state = CNN_encoder(in_shape, hidden_size, dropout=0.1)
             else:
                 raise NotImplementedError("encoder not implemented")
         self.embed_action = torch.nn.Linear(self.act_dim, hidden_size)
@@ -71,11 +74,11 @@ class DecisionTransformer(TrajectoryModel):
         self.embed_ln = nn.LayerNorm(hidden_size)
 
         # note: we don't predict states or returns for the paper
-        self.predict_state = torch.nn.Linear(hidden_size, self.state_dim)
+        # self.predict_state = torch.nn.Linear(hidden_size, self.state_dim)
         self.predict_action = nn.Sequential(
             *([nn.Linear(hidden_size, self.act_dim)] + ([nn.Tanh()] if action_tanh else []))
         )
-        self.predict_return = torch.nn.Linear(hidden_size, 1)
+        # self.predict_return = torch.nn.Linear(hidden_size, 1)
 
     def forward(self, states, actions, rewards, returns_to_go, timesteps, attention_mask=None):
 
@@ -120,11 +123,12 @@ class DecisionTransformer(TrajectoryModel):
         x = x.reshape(batch_size, seq_length, 3, self.hidden_size).permute(0, 2, 1, 3)
 
         # get predictions
-        return_preds = self.predict_return(x[:,2])  # predict next return given state and action
-        state_preds = self.predict_state(x[:,2])    # predict next state given state and action
+        # return_preds = self.predict_return(x[:,2])  # predict next return given state and action
+        # state_preds = self.predict_state(x[:,2])    # predict next state given state and action
         action_preds = self.predict_action(x[:,1])  # predict next action given state
 
-        return state_preds, action_preds, return_preds
+        #return state_preds, action_preds, return_preds
+        return None, action_preds, None
 
     def get_action(self, states, actions, rewards, returns_to_go, timesteps, **kwargs):
         # we don't care about the past rewards in this model
@@ -177,8 +181,52 @@ class MLP_encoder(torch.nn.Module):
             nn.Linear(in_dim, hidden_size),
             nn.ReLU(),
             nn.Dropout(dropout),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Dropout(dropout),
             nn.Linear(hidden_size, out_dim),
         )
 
     def forward(self, x):
         return self.predict_state(x)
+
+
+class CNN_encoder(torch.nn.Module):
+    def __init__(self, in_shape, out_dim, dropout=0.1):
+        super().__init__()
+        """
+        take input as 1D vector and reshape to in_shape image shape
+        e.g. in_shape = (4, 128, 64) for 4-stacked grayscale images
+        output is a 1D vector of length out_dim
+        """
+        self.in_shape = in_shape
+        self.out_dim = out_dim
+        channel, width, height = in_shape
+
+        self.cnn = nn.Sequential(
+            nn.Conv2d(channel, 32, kernel_size=8, stride=4, padding=0),
+            nn.ReLU(),
+            nn.Dropout(dropout),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2, padding=0),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Dropout(dropout),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=0),
+            nn.ReLU(),
+            #nn.MaxPool2d(kernel_size=2, stride=2),
+            nn.Flatten(),
+        )
+        dummy_cnn_output = self.cnn(torch.zeros(1, *in_shape))
+        print("CNN output shape: ", dummy_cnn_output.shape, "linearly transformed to", out_dim)
+        self.linear = nn.Linear(dummy_cnn_output.shape[1], out_dim)
+
+    def forward(self, x):
+        batch_size = x.shape[0]
+        context_length = x.shape[1]
+        x = x.reshape(-1, *self.in_shape)
+        x = self.cnn(x)
+        x = self.linear(x)
+        return x.view(batch_size, context_length, -1)
+
+
+

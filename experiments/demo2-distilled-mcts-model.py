@@ -84,7 +84,7 @@ config = {
 }
 
 env = gym.make("highway-fast-v0", render_mode="rgb_array")
-env.config["duration"] = 100
+env.config["duration"] = 60
 env.config['policy_frequency'] = 1
 
 sample = True
@@ -135,9 +135,11 @@ num_timesteps = sum(traj_lens)
 target_return = 1.0
 n_evals = 10
 
+ret = []
+
 # run eval episodes
 for i in range(n_evals):
-    evaluate_episode_rtg_nonstop(
+    r,_,_ = evaluate_episode_rtg_nonstop(
         env,
         state_dim,
         act_dim,
@@ -150,3 +152,5 @@ for i in range(n_evals):
         render=True,
         sample=False,
     )
+    ret.append(r)
+print(np.mean(ret))

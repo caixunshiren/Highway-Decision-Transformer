@@ -174,3 +174,4 @@ highway_attention_ppo
 324_Videos
 expert_scripts/highway_cnn
 expert_scripts/highway_ppo
+wandb/
