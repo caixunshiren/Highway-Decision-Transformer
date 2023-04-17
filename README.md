@@ -55,13 +55,11 @@ Below is a demonstration of the performance of the various experts. PPO and DQN 
 ## Models
 ### [Benchmark: Behaviour Cloning](/modules/behaviour_cloning.py)
 
-This is one of two benchmark models used by the original DT paper. By following an imitation-learning approach, we planned to develop an agent to mimic the behaviours of the expert on which it is trained on.
+This is one of two benchmark models used by the original DT paper. By following an imitation-learning approach, we developed an agent to mimic the behaviours of the expert on which it is trained on.
 
 ### Benchmark: Conservative Q-Learning
 
 The is the state-of-the-art offline RL method. It uses a temporal difference learning approach.
-
-The model is yet to be created.
 
 ### [Baseline Decision Transformer](/modules/decision_transformer.py)
 
@@ -70,16 +68,14 @@ Several experiments with various configurations of training datasets and paramet
 The DT model is based on GPT-2 defined in [```/modules/trajectory_gpt2.py```](/modules/trajectory_gpt2.py).
 
 ### Decision Transformer with Different Encoders
+We used two embeddings 
 
-* Current input is a flattened 5x5 array of the information about the nearest 5 cars.
-* We are currently using an MLP for input.
-* We will try out recurrent layers or attention mechanisms (similar to PPO).
+1. Kinematics: We used a 5x5 array of the position and velocities of the nearest 5 vehicles. 
+2. Image-Based: We used 4 of the most recent grayscale birdseye view images. 
 
 ### LSTM
 
 LSTM is a type of recurrent neural network (RNN) that is classically used for sequence modelling problems. A common criticism of DTs is that they are no different than sequence modelling with RNNs. We plan on replacing DT blocks with LSTM blocks to verify whether this criticism holds.
-
-This model is yet to be created.
 
 ## Result
 
