@@ -80,3 +80,10 @@ The DT model is based on GPT-2 defined in [```/modules/trajectory_gpt2.py```](/m
 LSTM is a type of recurrent neural network (RNN) that is classically used for sequence modelling problems. A common criticism of DTs is that they are no different than sequence modelling with RNNs. We plan on replacing DT blocks with LSTM blocks to verify whether this criticism holds.
 
 This model is yet to be created.
+
+## Result
+
+### Decisiont Transformer on Kinematic Input (Best 42.19 mean reward)
+
+
+### Decision Tranformer on Grayscale Image Input (Best 61.39 mean reward)
