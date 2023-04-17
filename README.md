@@ -79,7 +79,7 @@ LSTM is a type of recurrent neural network (RNN) that is classically used for se
 
 ## Result
 
-### Decision Transformer on Kinematic Input (Best 42.19 mean reward)
+### Decision Transformer on Kinematic Input (best 42.19 mean reward)
 <p align="center">
 <img
      src="figures/DT.gif"
@@ -88,7 +88,7 @@ LSTM is a type of recurrent neural network (RNN) that is classically used for se
 </p>
 
 
-### Decision Tranformer on Grayscale Image Input (Best 61.39 mean reward)
+### Decision Tranformer on Grayscale Image Input (best 61.39 mean reward)
 <p align="center">
 <img
      src="figures/DTCNN.gif"
