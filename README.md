@@ -83,7 +83,19 @@ This model is yet to be created.
 
 ## Result
 
-### Decisiont Transformer on Kinematic Input (Best 42.19 mean reward)
+### Decision Transformer on Kinematic Input (Best 42.19 mean reward)
+<p align="center">
+<img
+     src="figures/DT.gif"
+     width="500"
+     >
+</p>
 
 
 ### Decision Tranformer on Grayscale Image Input (Best 61.39 mean reward)
+<p align="center">
+<img
+     src="figures/DTCNN.gif"
+     width="500"
+     >
+</p>
