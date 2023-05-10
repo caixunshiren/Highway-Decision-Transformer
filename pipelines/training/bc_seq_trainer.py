@@ -47,7 +47,7 @@ class SequenceTrainer(Trainer):
         action_target = action_target[:,-1:,:].reshape(-1, 1, action_target.shape[2])
 
         loss = self.loss_fn(
-            None, action_preds, None,
+            None, action_preds.reshape(action_preds.shape[0], action_preds.shape[2]), None,
             None, action_target[:,-1:,:], None,
         )
 

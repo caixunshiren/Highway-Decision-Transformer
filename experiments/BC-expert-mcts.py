@@ -7,7 +7,7 @@ sys.path.append('/Users/jwoo/Documents/GitHub/Highway-Decision-Transformer')
 import numpy as np
 import torch
 
-from pipelines.train_bc import train
+from pipelines.train_bc_MLP import train
 
 # check if cuda is available
 print(torch.version.cuda)
@@ -39,7 +39,7 @@ config = {
     'weight_decay': 1e-4,
     'env_targets': [],#[0.5, 1.0, 5.0, 10],
     'action_tanh': False, #True,
-    'loss_fn': lambda s_hat, a_hat, r_hat, s, a, r: torch.nn.CrossEntropyLoss()(a_hat, torch.argmax(a, dim=1)),
+    'loss_fn': lambda s_hat, a_hat, r_hat, s, a, r: torch.nn.CrossEntropyLoss()(a_hat, torch.argmax(a, dim=2).flatten()),
     #lambda s_hat, a_hat, r_hat, s, a, r: torch.mean((a_hat - a)**2),
     'err_fn': lambda a_hat, a: torch.sum(torch.argmax(a_hat, dim=1) != torch.argmax(a, dim=1))/a.shape[0],
 }

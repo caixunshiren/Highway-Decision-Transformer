@@ -9,7 +9,7 @@ import numpy as np
 import torch
 from modules.decision_transformer import DecisionTransformer
 import pickle
-from modules.behaviour_cloning import BehaviourCloning
+from modules.behaviour_cloning_MLP import BehaviourCloning
 
 
 # load training sequences
@@ -180,6 +180,7 @@ ep_return = target_return
 target_return = torch.tensor(ep_return, device=config['device'], dtype=torch.float32).reshape(1, 1)
 timesteps = torch.tensor(0, device=config['device'], dtype=torch.long).reshape(1, 1)
 
+test = []
 sim_states = []
 for episodes in range(10):
     state, info = env.reset()
@@ -200,7 +201,7 @@ for episodes in range(10):
         actions[-1] = action
         action = action.detach().cpu().numpy()
 
-        print(np.argmax(action), action, t)
+        # print(np.argmax(action), action, t)
 
         optimal_action = np.argmax(action)
 
@@ -229,5 +230,8 @@ for episodes in range(10):
 
         if done:
             break
+    test.append(episode_return)
+
+print(test)
 
 env.close()

@@ -5,7 +5,7 @@ import wandb
 
 from pipelines.evaluation.evaluate_episodes import evaluate_episode_rtg
 from pipelines.training.bc_seq_trainer import SequenceTrainer
-from modules.behaviour_cloning import BehaviourCloning
+from modules.behaviour_cloning_CNN import BehaviourCloning
 
 def discount_cumsum(x, gamma):
     """
@@ -37,32 +37,18 @@ def train(config, sequences, continue_training=False):
     """
     assert sequences is not None, 'No sequences provided for training.'
     device = config['device']
-    act_dim = np.squeeze(sequences[0]['actions'].shape[1:])
-    state_dim = np.squeeze(sequences[0]['states'].shape[1:])
-    max_ep_len = max([len(path['states']) for path in sequences])  # take it as the longest trajectory
-    scale = np.mean([len(path['states']) for path in sequences])  # scale for rtg
-
-    # save all sequence information into separate lists
-    states, traj_lens, returns = [], [], []
-    for path in sequences:
-        if config['mode'] == 'delayed':  # delayed: all rewards moved to end of trajectory
-            path['rewards'][-1] = path['rewards'].sum()
-            path['rewards'][:-1] = 0.
-        states.append(path['states'])
-        traj_lens.append(len(path['states']))
-        returns.append(path['rewards'].sum())
-    traj_lens, returns = np.array(traj_lens), np.array(returns)
+    input_dim = config['channels'] * sequences['states'].shape[-1] * sequences['states'].shape[-2]
+    states = sequences['states']
+    returns = sequences['returns']
+    actions = sequences['actions']
 
     # used for input normalization
-    states = np.concatenate(states, axis=0)
     state_mean, state_std = np.mean(states, axis=0), np.std(states, axis=0) + 1e-6
-    num_timesteps = sum(traj_lens)
+    num_timesteps = len(sequences['states'])
 
     print('=' * 50)
     print(f'Starting new experiment: {config["experiment_name"]}')
-    print(f'{len(traj_lens)} trajectories, {num_timesteps} timesteps found')
-    print(f'Average return: {np.mean(returns):.2f}, std: {np.std(returns):.2f}')
-    print(f'Max return: {np.max(returns):.2f}, min: {np.min(returns):.2f}')
+    print(f'{num_timesteps} timesteps found')
     print('=' * 50)
 
     K = config['context_length']
@@ -70,66 +56,24 @@ def train(config, sequences, continue_training=False):
     num_eval_episodes = config['num_eval_episodes']
     pct_traj = config['pct_traj']
 
-    # only train on top pct_traj trajectories (for %BC experiment)
-    num_timesteps = max(int(pct_traj * num_timesteps), 1)
-    sorted_inds = np.argsort(returns)  # lowest to highest return
-    num_trajectories = 1
-    timesteps = traj_lens[sorted_inds[-1]]
-    ind = len(sequences) - 2
-    while ind >= 0 and timesteps + traj_lens[sorted_inds[ind]] <= num_timesteps:
-        timesteps += traj_lens[sorted_inds[ind]]
-        num_trajectories += 1
-        ind -= 1
-    sorted_inds = sorted_inds[-num_trajectories:]
-
-    # used to reweight sampling so we sample according to timesteps instead of trajectories
-    p_sample = traj_lens[sorted_inds] / sum(traj_lens[sorted_inds])
-
     def get_batch(batch_size=256, max_len=K):
         batch_inds = np.random.choice(
-            np.arange(num_trajectories),
+            np.arange(num_timesteps),
             size=batch_size,
-            replace=True,
-            p=p_sample,  # reweights so we sample according to timesteps
+            replace=True
         )
 
         s, a, r, d, rtg, timesteps, mask = [], [], [], [], [], [], []
         for i in range(batch_size):
-            traj = sequences[int(sorted_inds[batch_inds[i]])]
-            si = random.randint(0, traj['rewards'].shape[0] - 1)
-
             # get sequences from dataset
-            s.append(traj['states'][si:si + max_len].reshape(1, -1, state_dim))
-            a.append(traj['actions'][si:si + max_len].reshape(1, -1, act_dim))
-            r.append(traj['rewards'][si:si + max_len].reshape(1, -1, 1))
-            if 'terminals' in traj:
-                d.append(traj['terminals'][si:si + max_len].reshape(1, -1))
-            else:
-                d.append(traj['dones'][si:si + max_len].reshape(1, -1))
-            timesteps.append(np.arange(si, si + s[-1].shape[1]).reshape(1, -1))
-            timesteps[-1][timesteps[-1] >= max_ep_len] = max_ep_len - 1  # padding cutoff
-            rtg.append(discount_cumsum(traj['rewards'][si:], gamma=1.)[:s[-1].shape[1] + 1].reshape(1, -1, 1))
-            if rtg[-1].shape[1] <= s[-1].shape[1]:
-                rtg[-1] = np.concatenate([rtg[-1], np.zeros((1, 1, 1))], axis=1)
+            si = batch_inds[i]
+            s.append(states[si:si + max_len].reshape(-1, 128, 64))
 
             # padding and state + reward normalization
-            tlen = s[-1].shape[1]
-            s[-1] = np.concatenate([np.zeros((1, max_len - tlen, state_dim)), s[-1]], axis=1)
+            s[-1] = np.concatenate([np.zeros((max_len * 4 - len(s[-1]), 128, 64)), s[-1]])
             s[-1] = (s[-1] - state_mean) / state_std
-            a[-1] = np.concatenate([np.ones((1, max_len - tlen, act_dim)) * -10., a[-1]], axis=1)
-            r[-1] = np.concatenate([np.zeros((1, max_len - tlen, 1)), r[-1]], axis=1)
-            d[-1] = np.concatenate([np.ones((1, max_len - tlen)) * 2, d[-1]], axis=1)
-            rtg[-1] = np.concatenate([np.zeros((1, max_len - tlen, 1)), rtg[-1]], axis=1) / scale
-            timesteps[-1] = np.concatenate([np.zeros((1, max_len - tlen)), timesteps[-1]], axis=1)
-            mask.append(np.concatenate([np.zeros((1, max_len - tlen)), np.ones((1, tlen))], axis=1))
 
         s = torch.from_numpy(np.concatenate(s, axis=0)).to(dtype=torch.float32, device=device)
-        a = torch.from_numpy(np.concatenate(a, axis=0)).to(dtype=torch.float32, device=device)
-        r = torch.from_numpy(np.concatenate(r, axis=0)).to(dtype=torch.float32, device=device)
-        d = torch.from_numpy(np.concatenate(d, axis=0)).to(dtype=torch.long, device=device)
-        rtg = torch.from_numpy(np.concatenate(rtg, axis=0)).to(dtype=torch.float32, device=device)
-        timesteps = torch.from_numpy(np.concatenate(timesteps, axis=0)).to(dtype=torch.long, device=device)
-        mask = torch.from_numpy(np.concatenate(mask, axis=0)).to(device=device)
 
         return s, a, r, d, rtg, timesteps, mask
 
@@ -160,22 +104,20 @@ def train(config, sequences, continue_training=False):
             }
         return fn
 
-    print("state_dim:", state_dim, " act_dim:", act_dim, " K:", K, " max_ep_len:", max_ep_len, " scale:", scale)
+    print("input_dim:", input_dim, " K:", K)
 
-    state_dim = 25
     act_dim = 5
-    hidden_size = 256
     n_layer = 3
-    dropout = 0.1
-    max_length =1
 
     model = BehaviourCloning(
-        state_dim = state_dim, 
+        input_dim = input_dim, 
         act_dim = act_dim, 
         hidden_size = config['embed_dim'], 
         n_layer = config['n_layer'], 
         dropout = config['dropout'], 
-        max_length = K
+        max_length = K,
+        in_channels = config['in_channels'] * K,    #4 channels per timestep x K timesteps
+        channels = config['channels'],
         )
 
     optimizer = torch.optim.AdamW(
